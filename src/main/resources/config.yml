@@ -1,6 +1,5 @@
 disableTooExpensive: true
 allowInfinityMendingOnBows: true
 alsoAllowOnCrossbows: false
-allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true

@@ -1,12 +1,10 @@
 package com.example.ashsenchanting;
 
 import com.example.ashsenchanting.config.PluginSettings;
-import com.example.ashsenchanting.command.AshTestCommand;
 import com.example.ashsenchanting.listener.AnvilClickListener;
 import com.example.ashsenchanting.listener.AnvilPrepareListener;
 import com.example.ashsenchanting.listener.AnvilSessionListener;
 import com.example.ashsenchanting.model.AnvilSessionState;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -28,7 +26,6 @@ public final class AshsEnchanting extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new AnvilPrepareListener(this), this);
         getServer().getPluginManager().registerEvents(new AnvilClickListener(this), this);
         getServer().getPluginManager().registerEvents(new AnvilSessionListener(this), this);
-        registerCommands();
 
         logInfo("Enabled Ash's Enchanting v" + getDescription().getVersion());
     }
@@ -80,14 +77,5 @@ public final class AshsEnchanting extends JavaPlugin {
         if (settings != null && settings.useLogger()) {
             getLogger().info(message);
         }
-    }
-
-    private void registerCommands() {
-        PluginCommand ashTestCommand = getCommand("ashtetest");
-        if (ashTestCommand == null) {
-            getLogger().warning("Command registration failed: /ashtetest not found in plugin.yml");
-            return;
-        }
-        ashTestCommand.setExecutor(new AshTestCommand());
     }
 }

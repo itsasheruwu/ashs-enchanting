@@ -6,7 +6,6 @@ public record PluginSettings(
         boolean disableTooExpensive,
         boolean allowInfinityMendingOnBows,
         boolean alsoAllowOnCrossbows,
-        boolean allowAllProtectionsOnArmor,
         boolean chargeCreative,
         boolean useLogger
 ) {
@@ -15,7 +14,6 @@ public record PluginSettings(
                 config.getBoolean("disableTooExpensive", true),
                 config.getBoolean("allowInfinityMendingOnBows", true),
                 config.getBoolean("alsoAllowOnCrossbows", false),
-                config.getBoolean("allowAllProtectionsOnArmor", false),
                 config.getBoolean("chargeCreative", false),
                 config.getBoolean("useLogger", true)
         );

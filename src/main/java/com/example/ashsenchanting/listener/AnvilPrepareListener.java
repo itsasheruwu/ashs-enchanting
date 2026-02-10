@@ -15,6 +15,7 @@ import org.bukkit.inventory.view.AnvilView;
 
 public final class AnvilPrepareListener implements Listener {
     private static final int VANILLA_TOO_EXPENSIVE_THRESHOLD = 40;
+    private static final int HIGHEST_DISPLAYABLE_COST = VANILLA_TOO_EXPENSIVE_THRESHOLD - 1;
 
     private final AshsEnchanting plugin;
 
@@ -40,27 +41,18 @@ public final class AnvilPrepareListener implements Listener {
         int vanillaRepairItemCountCost = Math.max(0, view.getRepairItemCountCost());
         int maximumRepairCost = Math.max(0, view.getMaximumRepairCost());
 
-        EnchantCompatUtil.PatchResult infinityPatch = EnchantCompatUtil.patchInfinityMending(
+        EnchantCompatUtil.PatchResult patch = EnchantCompatUtil.patchInfinityMending(
                 settings,
                 left,
                 right,
                 vanillaResult,
                 view
         );
-        EnchantCompatUtil.PatchResult protectionPatch = EnchantCompatUtil.patchAllProtectionsOnArmor(
-                settings,
-                left,
-                right,
-                infinityPatch.result(),
-                view
-        );
-        EnchantCompatUtil.PatchResult patch = EnchantCompatUtil.merge(infinityPatch, protectionPatch);
 
         ItemStack finalResult = patch.result() == null ? null : patch.result().clone();
         event.setResult(finalResult);
 
         int effectiveRepairCost = EnchantCompatUtil.resolveCompatRepairCost(
-                settings,
                 left,
                 right,
                 view,
@@ -72,8 +64,16 @@ public final class AnvilPrepareListener implements Listener {
                 && finalResult != null
                 && effectiveRepairCost >= VANILLA_TOO_EXPENSIVE_THRESHOLD;
 
+        if (settings.disableTooExpensive()) {
+            view.setMaximumRepairCost(Integer.MAX_VALUE);
+            maximumRepairCost = Integer.MAX_VALUE;
+        }
+
         if (finalResult != null && (patch.customCompatApplied() || settings.disableTooExpensive())) {
-            view.setRepairCost(effectiveRepairCost);
+            int displayedRepairCost = tooExpensiveBypassNeeded
+                    ? HIGHEST_DISPLAYABLE_COST
+                    : effectiveRepairCost;
+            view.setRepairCost(displayedRepairCost);
         }
 
         boolean customCompatNeedsTakeover = EnchantCompatUtil.shouldTakeOverForCompat(
