@@ -18,12 +18,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.0.6.jar`
+- `target/ashs-enchanting-1.0.7.jar`
 
 ## Install
 
 1. Stop the server.
-2. Copy `target/ashs-enchanting-1.0.6.jar` to the server `plugins/` folder.
+2. Copy `target/ashs-enchanting-1.0.7.jar` to the server `plugins/` folder.
 3. Start the server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml` as needed.
 5. Restart server.
@@ -75,3 +75,12 @@ useLogger: true
 - Vanilla anvil break/damage behavior is preserved automatically when the plugin does not need to take over result handling.
 - During forced manual result handling paths, plugin applies best-effort vanilla-like 12% break chance and progression:
   - `ANVIL -> CHIPPED_ANVIL -> DAMAGED_ANVIL -> AIR`
+
+## Cost Display And Technical Note
+
+When `disableTooExpensive: true`:
+- The native anvil UI displays at most `39` levels to avoid the client-side `"Too Expensive!"` block text.
+- The plugin still computes and charges the true operation cost server-side.
+- After a successful take, the player receives a private chat message with the true cost and a clickable **Click here** link.
+
+For the deeper technical explanation, [click here](docs/anvil-cost-behavior.md).

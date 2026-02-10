@@ -3,6 +3,11 @@ package com.example.ashsenchanting.listener;
 import com.example.ashsenchanting.AshsEnchanting;
 import com.example.ashsenchanting.config.PluginSettings;
 import com.example.ashsenchanting.model.AnvilSessionState;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -28,6 +33,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public final class AnvilClickListener implements Listener {
     private static final float VANILLA_ANVIL_BREAK_CHANCE = 0.12F;
+    private static final String TECHNICAL_NOTE_URL =
+            "https://github.com/itsasheruwu/ashs-enchanting/blob/main/docs/anvil-cost-behavior.md";
 
     private final AshsEnchanting plugin;
 
@@ -114,6 +121,7 @@ public final class AnvilClickListener implements Listener {
         consumeInputs(anvil, state);
         anvil.setItem(2, null);
         maybeDamageOrBreakAnvil(view);
+        sendPrivateCostMessage(player, cost);
 
         forceSync(player);
     }
@@ -287,6 +295,26 @@ public final class AnvilClickListener implements Listener {
     private void forceSync(Player player) {
         player.updateInventory();
         Bukkit.getScheduler().runTask(plugin, player::updateInventory);
+    }
+
+    private void sendPrivateCostMessage(Player player, int trueCost) {
+        TextComponent prefix = new TextComponent("[Ash's Enchanting] ");
+        prefix.setColor(ChatColor.GOLD);
+
+        TextComponent body = new TextComponent("True anvil cost: " + trueCost + " levels. ");
+        body.setColor(ChatColor.YELLOW);
+
+        TextComponent link = new TextComponent("Click here");
+        link.setBold(true);
+        link.setUnderlined(true);
+        link.setColor(ChatColor.AQUA);
+        link.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, TECHNICAL_NOTE_URL));
+        link.setHoverEvent(new HoverEvent(
+                HoverEvent.Action.SHOW_TEXT,
+                new ComponentBuilder("Open the technical cost note on GitHub.").color(ChatColor.GRAY).create()
+        ));
+
+        player.spigot().sendMessage(prefix, body, link);
     }
 
     private static ItemStack copyIfPresent(ItemStack stack) {
