@@ -1,0 +1,5 @@
+disableTooExpensive: true
+allowInfinityMendingOnBows: true
+alsoAllowOnCrossbows: false
+chargeCreative: false
+useLogger: true
