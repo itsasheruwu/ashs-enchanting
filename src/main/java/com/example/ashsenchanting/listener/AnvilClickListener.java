@@ -81,6 +81,13 @@ public final class AnvilClickListener implements Listener {
     private void processManualTake(InventoryClickEvent event, Player player, AnvilView view, AnvilSessionState state) {
         AnvilInventory anvil = view.getTopInventory();
         ItemStack result = copyIfPresent(anvil.getItem(2));
+
+        if (isAir(result)
+                && state.customCompatApplied()
+                && inputsStillMatchState(anvil, state)) {
+            result = copyIfPresent(state.preparedResult());
+        }
+
         if (isAir(result)) {
             forceSync(player);
             return;
@@ -186,6 +193,20 @@ public final class AnvilClickListener implements Listener {
         anvil.setItem(1, right);
     }
 
+    private boolean inputsStillMatchState(AnvilInventory anvil, AnvilSessionState state) {
+        return sameItem(anvil.getItem(0), state.leftInput()) && sameItem(anvil.getItem(1), state.rightInput());
+    }
+
+    private boolean sameItem(ItemStack current, ItemStack expected) {
+        if (isAir(current) && isAir(expected)) {
+            return true;
+        }
+        if (isAir(current) || isAir(expected)) {
+            return false;
+        }
+        return current.isSimilar(expected) && current.getAmount() == expected.getAmount();
+    }
+
     private void maybeDamageOrBreakAnvil(AnvilView view) {
         Inventory top = view.getTopInventory();
         Location location = top.getLocation();
@@ -235,21 +256,10 @@ public final class AnvilClickListener implements Listener {
     }
 
     private boolean isSupportedClick(InventoryClickEvent event) {
-        ClickType click = event.getClick();
-        if (click == ClickType.NUMBER_KEY
-                || click == ClickType.SWAP_OFFHAND
-                || click == ClickType.DROP
-                || click == ClickType.CONTROL_DROP
-                || click == ClickType.DOUBLE_CLICK
-                || click == ClickType.CREATIVE
-                || click == ClickType.UNKNOWN) {
-            return false;
-        }
-
-        InventoryAction action = event.getAction();
-        return action != InventoryAction.NOTHING
-                && action != InventoryAction.HOTBAR_SWAP
-                && action != InventoryAction.HOTBAR_MOVE_AND_READD;
+        return switch (event.getClick()) {
+            case LEFT, RIGHT, SHIFT_LEFT, SHIFT_RIGHT -> true;
+            default -> false;
+        };
     }
 
     private void forceSync(Player player) {

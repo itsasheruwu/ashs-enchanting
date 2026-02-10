@@ -69,6 +69,8 @@ public final class AnvilPrepareListener implements Listener {
 
         plugin.putSession(player, new AnvilSessionState(
                 event.getView().getTopInventory(),
+                left == null ? null : left.clone(),
+                right == null ? null : right.clone(),
                 finalResult == null ? null : finalResult.clone(),
                 vanillaRepairCost,
                 effectiveRightConsume,
