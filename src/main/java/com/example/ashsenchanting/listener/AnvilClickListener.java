@@ -35,7 +35,7 @@ public final class AnvilClickListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onAnvilResultTake(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
