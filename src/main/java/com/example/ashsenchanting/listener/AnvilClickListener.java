@@ -94,7 +94,7 @@ public final class AnvilClickListener implements Listener {
         }
 
         PluginSettings settings = plugin.getPluginSettings();
-        int cost = Math.max(0, state.repairCost());
+        int cost = resolveOperationCost(view, state);
 
         if (mustChargePlayer(player, settings) && player.getLevel() < cost) {
             forceSync(player);
@@ -191,6 +191,24 @@ public final class AnvilClickListener implements Listener {
 
         right.setAmount(right.getAmount() - consume);
         anvil.setItem(1, right);
+    }
+
+    private int resolveOperationCost(AnvilView view, AnvilSessionState state) {
+        int liveCost = Math.max(0, view.getRepairCost());
+        if (liveCost > 0) {
+            return liveCost;
+        }
+
+        int cachedCost = Math.max(0, state.repairCost());
+        if (cachedCost > 0) {
+            return cachedCost;
+        }
+
+        if (state.customCompatApplied()) {
+            return 1;
+        }
+
+        return 0;
     }
 
     private boolean inputsStillMatchState(AnvilInventory anvil, AnvilSessionState state) {

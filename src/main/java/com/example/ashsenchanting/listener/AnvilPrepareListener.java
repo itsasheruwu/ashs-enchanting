@@ -49,9 +49,17 @@ public final class AnvilPrepareListener implements Listener {
         ItemStack finalResult = patch.result() == null ? null : patch.result().clone();
         event.setResult(finalResult);
 
+        int effectiveRepairCost = vanillaRepairCost;
+        if (patch.customCompatApplied() && finalResult != null) {
+            if (effectiveRepairCost <= 0) {
+                effectiveRepairCost = 1;
+            }
+            view.setRepairCost(effectiveRepairCost);
+        }
+
         boolean tooExpensiveBypassNeeded = settings.disableTooExpensive()
                 && finalResult != null
-                && vanillaRepairCost > maximumRepairCost;
+                && effectiveRepairCost > maximumRepairCost;
 
         boolean customCompatNeedsTakeover = EnchantCompatUtil.shouldTakeOverForCompat(
                 new EnchantCompatUtil.AnvilSessionDecision(
@@ -72,7 +80,7 @@ public final class AnvilPrepareListener implements Listener {
                 left == null ? null : left.clone(),
                 right == null ? null : right.clone(),
                 finalResult == null ? null : finalResult.clone(),
-                vanillaRepairCost,
+                effectiveRepairCost,
                 effectiveRightConsume,
                 maximumRepairCost,
                 tooExpensiveBypassNeeded,
