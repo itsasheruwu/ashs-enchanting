@@ -85,11 +85,63 @@ public final class EnchantCompatUtil {
         );
     }
 
+    public static PatchResult patchAllProtectionsOnArmor(
+            PluginSettings settings,
+            ItemStack left,
+            ItemStack right,
+            ItemStack vanillaResult,
+            AnvilView view
+    ) {
+        if (!settings.allowAllProtectionsOnArmor()) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        if (left == null || right == null || left.getType() == Material.AIR || right.getType() == Material.AIR) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        if (!isArmorPiece(left.getType()) || !isValidMergeInput(left, right)) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        Map<Enchantment, Integer> offeredEnchants = getAllEnchantLevels(right);
+        if (offeredEnchants.isEmpty()) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        ItemStack workingResult = vanillaResult != null ? vanillaResult.clone() : left.clone();
+        applyRenameIfPresent(workingResult, view.getRenameText());
+
+        boolean changed = false;
+        changed |= maybeApplyProtection(workingResult, offeredEnchants, Enchantment.PROTECTION);
+        changed |= maybeApplyProtection(workingResult, offeredEnchants, Enchantment.FIRE_PROTECTION);
+        changed |= maybeApplyProtection(workingResult, offeredEnchants, Enchantment.BLAST_PROTECTION);
+        changed |= maybeApplyProtection(workingResult, offeredEnchants, Enchantment.PROJECTILE_PROTECTION);
+
+        if (!changed) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        if (vanillaResult == null) {
+            applyIncreasedRepairCost(workingResult, left, right);
+        }
+
+        return new PatchResult(workingResult, true, true);
+    }
+
+    public static PatchResult merge(PatchResult first, PatchResult second) {
+        ItemStack mergedResult = second.result() == null ? null : second.result().clone();
+        boolean mergedCompatApplied = first.customCompatApplied() || second.customCompatApplied();
+        boolean mergedAnyChange = first.anyChange() || second.anyChange();
+        return new PatchResult(mergedResult, mergedCompatApplied, mergedAnyChange);
+    }
+
     public static boolean shouldTakeOverForCompat(AnvilSessionDecision decision) {
         return decision.customCompatApplied() && (decision.vanillaResultMissing() || decision.vanillaCostIsZero());
     }
 
     public static int resolveCompatRepairCost(
+            PluginSettings settings,
             ItemStack left,
             ItemStack right,
             AnvilView view,
@@ -104,7 +156,7 @@ public final class EnchantCompatUtil {
             return vanillaRepairCost;
         }
 
-        int computed = calculateVanillaLikeCompatCost(left, right, view.getRenameText());
+        int computed = calculateVanillaLikeCompatCost(settings, left, right, view.getRenameText());
         if (computed > 0) {
             return computed;
         }
@@ -122,7 +174,12 @@ public final class EnchantCompatUtil {
         return 0;
     }
 
-    private static int calculateVanillaLikeCompatCost(ItemStack left, ItemStack right, String renameText) {
+    private static int calculateVanillaLikeCompatCost(
+            PluginSettings settings,
+            ItemStack left,
+            ItemStack right,
+            String renameText
+    ) {
         if (left == null || right == null || left.getType() == Material.AIR || right.getType() == Material.AIR) {
             return 0;
         }
@@ -155,8 +212,8 @@ public final class EnchantCompatUtil {
                     : Math.max(currentLevel, offeredLevel);
             mergedLevel = Math.min(mergedLevel, enchantment.getMaxLevel());
 
-            if (!canApplyCompatAware(enchantment, left, merged.keySet(), rightIsBook)) {
-                operationCost += countIncompatible(enchantment, merged.keySet());
+            if (!canApplyCompatAware(settings, enchantment, left, merged.keySet(), rightIsBook)) {
+                operationCost += countIncompatible(settings, enchantment, left, merged.keySet());
                 continue;
             }
 
@@ -190,6 +247,33 @@ public final class EnchantCompatUtil {
         return (int) total;
     }
 
+    private static boolean maybeApplyProtection(
+            ItemStack result,
+            Map<Enchantment, Integer> offeredEnchants,
+            Enchantment protectionType
+    ) {
+        int offeredLevel = offeredEnchants.getOrDefault(protectionType, 0);
+        if (offeredLevel <= 0) {
+            return false;
+        }
+
+        int currentLevel = result.getEnchantmentLevel(protectionType);
+        int mergedLevel = combineAnvilLevels(currentLevel, offeredLevel, protectionType.getMaxLevel());
+        if (mergedLevel <= currentLevel) {
+            return false;
+        }
+
+        result.addUnsafeEnchantment(protectionType, mergedLevel);
+        return true;
+    }
+
+    private static int combineAnvilLevels(int currentLevel, int offeredLevel, int maxLevel) {
+        int mergedLevel = currentLevel == offeredLevel
+                ? offeredLevel + 1
+                : Math.max(currentLevel, offeredLevel);
+        return Math.min(mergedLevel, maxLevel);
+    }
+
     private static Map<Enchantment, Integer> getAllEnchantLevels(ItemStack item) {
         Map<Enchantment, Integer> levels = new HashMap<>(item.getEnchantments());
         if (item.getType() == Material.ENCHANTED_BOOK && item.getItemMeta() instanceof EnchantmentStorageMeta storageMeta) {
@@ -201,6 +285,7 @@ public final class EnchantCompatUtil {
     }
 
     private static boolean canApplyCompatAware(
+            PluginSettings settings,
             Enchantment candidate,
             ItemStack target,
             Set<Enchantment> currentEnchants,
@@ -217,7 +302,7 @@ public final class EnchantCompatUtil {
             if (!candidate.conflictsWith(existing)) {
                 continue;
             }
-            if (isInfinityMendingPair(candidate, existing)) {
+            if (isAllowedConflictOverride(settings, target.getType(), candidate, existing)) {
                 continue;
             }
             return false;
@@ -226,7 +311,12 @@ public final class EnchantCompatUtil {
         return true;
     }
 
-    private static int countIncompatible(Enchantment candidate, Set<Enchantment> currentEnchants) {
+    private static int countIncompatible(
+            PluginSettings settings,
+            Enchantment candidate,
+            ItemStack target,
+            Set<Enchantment> currentEnchants
+    ) {
         int count = 0;
         for (Enchantment existing : currentEnchants) {
             if (existing.equals(candidate)) {
@@ -235,7 +325,7 @@ public final class EnchantCompatUtil {
             if (!candidate.conflictsWith(existing)) {
                 continue;
             }
-            if (isInfinityMendingPair(candidate, existing)) {
+            if (isAllowedConflictOverride(settings, target.getType(), candidate, existing)) {
                 continue;
             }
             count++;
@@ -243,9 +333,33 @@ public final class EnchantCompatUtil {
         return count;
     }
 
+    private static boolean isAllowedConflictOverride(
+            PluginSettings settings,
+            Material targetMaterial,
+            Enchantment first,
+            Enchantment second
+    ) {
+        if (isInfinityMendingPair(first, second)) {
+            return (targetMaterial == Material.BOW && settings.allowInfinityMendingOnBows())
+                    || (targetMaterial == Material.CROSSBOW && settings.alsoAllowOnCrossbows());
+        }
+
+        return settings.allowAllProtectionsOnArmor()
+                && isArmorPiece(targetMaterial)
+                && isPrimaryProtection(first)
+                && isPrimaryProtection(second);
+    }
+
     private static boolean isInfinityMendingPair(Enchantment first, Enchantment second) {
         return (first.equals(Enchantment.INFINITY) && second.equals(Enchantment.MENDING))
                 || (first.equals(Enchantment.MENDING) && second.equals(Enchantment.INFINITY));
+    }
+
+    private static boolean isPrimaryProtection(Enchantment enchantment) {
+        return enchantment.equals(Enchantment.PROTECTION)
+                || enchantment.equals(Enchantment.FIRE_PROTECTION)
+                || enchantment.equals(Enchantment.BLAST_PROTECTION)
+                || enchantment.equals(Enchantment.PROJECTILE_PROTECTION);
     }
 
     private static int calculateRenameCost(ItemStack left, String renameText) {
@@ -339,6 +453,19 @@ public final class EnchantCompatUtil {
             return settings.allowInfinityMendingOnBows();
         }
         return material == Material.CROSSBOW && settings.alsoAllowOnCrossbows();
+    }
+
+    private static boolean isArmorPiece(Material material) {
+        return switch (material) {
+            case LEATHER_HELMET, LEATHER_CHESTPLATE, LEATHER_LEGGINGS, LEATHER_BOOTS,
+                    CHAINMAIL_HELMET, CHAINMAIL_CHESTPLATE, CHAINMAIL_LEGGINGS, CHAINMAIL_BOOTS,
+                    IRON_HELMET, IRON_CHESTPLATE, IRON_LEGGINGS, IRON_BOOTS,
+                    GOLDEN_HELMET, GOLDEN_CHESTPLATE, GOLDEN_LEGGINGS, GOLDEN_BOOTS,
+                    DIAMOND_HELMET, DIAMOND_CHESTPLATE, DIAMOND_LEGGINGS, DIAMOND_BOOTS,
+                    NETHERITE_HELMET, NETHERITE_CHESTPLATE, NETHERITE_LEGGINGS, NETHERITE_BOOTS,
+                    TURTLE_HELMET -> true;
+            default -> false;
+        };
     }
 
     private static boolean isValidMergeInput(ItemStack left, ItemStack right) {

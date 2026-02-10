@@ -41,18 +41,27 @@ public final class AnvilPrepareListener implements Listener {
         int vanillaRepairItemCountCost = Math.max(0, view.getRepairItemCountCost());
         int maximumRepairCost = Math.max(0, view.getMaximumRepairCost());
 
-        EnchantCompatUtil.PatchResult patch = EnchantCompatUtil.patchInfinityMending(
+        EnchantCompatUtil.PatchResult infinityPatch = EnchantCompatUtil.patchInfinityMending(
                 settings,
                 left,
                 right,
                 vanillaResult,
                 view
         );
+        EnchantCompatUtil.PatchResult protectionPatch = EnchantCompatUtil.patchAllProtectionsOnArmor(
+                settings,
+                left,
+                right,
+                infinityPatch.result(),
+                view
+        );
+        EnchantCompatUtil.PatchResult patch = EnchantCompatUtil.merge(infinityPatch, protectionPatch);
 
         ItemStack finalResult = patch.result() == null ? null : patch.result().clone();
         event.setResult(finalResult);
 
         int effectiveRepairCost = EnchantCompatUtil.resolveCompatRepairCost(
+                settings,
                 left,
                 right,
                 view,

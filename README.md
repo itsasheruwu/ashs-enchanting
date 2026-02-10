@@ -4,6 +4,7 @@
 - Removes anvil "Too Expensive!" completion blocking while keeping vanilla-calculated level cost.
 - Allows Infinity and Mending to coexist on bows.
 - Optionally allows the same coexistence rule on crossbows, including Infinity application to crossbows.
+- Optionally allows all primary protection enchants on the same armor piece.
 
 ## Build
 
@@ -18,12 +19,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.0.7.jar`
+- `target/ashs-enchanting-1.0.8.jar`
 
 ## Install
 
 1. Stop the server.
-2. Copy `target/ashs-enchanting-1.0.7.jar` to the server `plugins/` folder.
+2. Copy `target/ashs-enchanting-1.0.8.jar` to the server `plugins/` folder.
 3. Start the server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml` as needed.
 5. Restart server.
@@ -34,6 +35,7 @@ Output jar:
 disableTooExpensive: true
 allowInfinityMendingOnBows: true
 alsoAllowOnCrossbows: false
+allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true
 ```
@@ -49,6 +51,10 @@ useLogger: true
 
 - `alsoAllowOnCrossbows`
   - `true`: extends Infinity+Mending coexistence to crossbows and also permits Infinity application to crossbows through anvil/book paths.
+
+- `allowAllProtectionsOnArmor`
+  - `true`: allows `Protection`, `Fire Protection`, `Blast Protection`, and `Projectile Protection` to coexist on armor through anvil combine/book application paths.
+  - `false` (default): keeps vanilla mutual exclusivity for protection families.
 
 - `chargeCreative`
   - `false`: creative players are not charged levels.
