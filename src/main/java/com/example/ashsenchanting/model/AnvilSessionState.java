@@ -12,6 +12,8 @@ public record AnvilSessionState(
         int repairItemCountCost,
         int maximumRepairCost,
         boolean tooExpensiveBypassNeeded,
-        boolean customCompatApplied
+        boolean customCompatApplied,
+        boolean trueCostDisplayedInUi,
+        boolean abilitySpoofActive
 ) {
 }

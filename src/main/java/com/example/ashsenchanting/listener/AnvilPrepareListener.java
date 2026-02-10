@@ -72,6 +72,8 @@ public final class AnvilPrepareListener implements Listener {
         boolean tooExpensiveBypassNeeded = settings.disableTooExpensive()
                 && finalResult != null
                 && effectiveRepairCost >= VANILLA_TOO_EXPENSIVE_THRESHOLD;
+        boolean trueCostDisplayModeActive = tooExpensiveBypassNeeded && plugin.canDisplayTrueCostAbove40InUi();
+        boolean abilitySpoofNeeded = trueCostDisplayModeActive && finalResult != null;
 
         if (settings.disableTooExpensive()) {
             view.setMaximumRepairCost(Integer.MAX_VALUE);
@@ -79,11 +81,13 @@ public final class AnvilPrepareListener implements Listener {
         }
 
         if (finalResult != null && (patch.customCompatApplied() || settings.disableTooExpensive())) {
-            int displayedRepairCost = tooExpensiveBypassNeeded
-                    ? HIGHEST_DISPLAYABLE_COST
-                    : effectiveRepairCost;
+            int displayedRepairCost = trueCostDisplayModeActive
+                    ? effectiveRepairCost
+                    : (tooExpensiveBypassNeeded ? HIGHEST_DISPLAYABLE_COST : effectiveRepairCost);
             view.setRepairCost(displayedRepairCost);
         }
+
+        plugin.updateAbilitySpoof(player, abilitySpoofNeeded);
 
         boolean customCompatNeedsTakeover = EnchantCompatUtil.shouldTakeOverForCompat(
                 new EnchantCompatUtil.AnvilSessionDecision(
@@ -108,7 +112,9 @@ public final class AnvilPrepareListener implements Listener {
                 effectiveRightConsume,
                 maximumRepairCost,
                 tooExpensiveBypassNeeded,
-                customCompatNeedsTakeover
+                customCompatNeedsTakeover,
+                trueCostDisplayModeActive,
+                abilitySpoofNeeded
         ));
     }
 }

@@ -38,6 +38,8 @@ alsoAllowOnCrossbows: false
 allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true
+showTrueCostAbove40InAnvilUi: true
+showTrueCostChatMessage: fallback-only
 ```
 
 ## Config Behavior
@@ -63,6 +65,15 @@ useLogger: true
 - `useLogger`
   - Enables plugin info logging.
 
+- `showTrueCostAbove40InAnvilUi`
+  - `true`: if ProtocolLib is installed, client ability packets are spoofed while relevant anvil states are open so the native UI can display numeric `40+` costs.
+  - If ProtocolLib is missing, plugin safely falls back to `39` display clamp behavior.
+
+- `showTrueCostChatMessage`
+  - `fallback-only` (default): private true-cost chat message appears only when ProtocolLib fallback (`39` clamp mode) is in effect.
+  - `always`: private true-cost chat message appears for all 40+ bypassed operations.
+  - `never`: disables the private true-cost chat message.
+
 ## Notes: Dupe Prevention
 
 - Result-slot manual takeovers are processed with a per-player reentrancy guard.
@@ -74,7 +85,7 @@ useLogger: true
 
 - Manual takeovers force immediate `player.updateInventory()`.
 - A 1-tick delayed second `updateInventory()` is scheduled to reduce Java/Bedrock UI divergence.
-- All logic is server-side only; no client mods or custom packets are required.
+- All logic is server-side only; no client mods are required.
 
 ## Anvil Break Behavior
 
@@ -85,8 +96,9 @@ useLogger: true
 ## Cost Display And Technical Note
 
 When `disableTooExpensive: true`:
-- The native anvil UI displays at most `39` levels to avoid the client-side `"Too Expensive!"` block text.
+- With ProtocolLib and `showTrueCostAbove40InAnvilUi: true`, the native anvil UI displays the true numeric `40+` cost.
+- Without ProtocolLib (or when true-cost UI mode is disabled), the UI displays at most `39` to avoid client-side `"Too Expensive!"` block text.
 - The plugin still computes and charges the true operation cost server-side.
-- After a successful take, the player receives a private chat message with the true cost and a clickable **Click here** link.
+- Private true-cost chat behavior is controlled by `showTrueCostChatMessage`.
 
 For the deeper technical explanation, [click here](docs/anvil-cost-behavior.md).

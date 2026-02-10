@@ -121,7 +121,9 @@ public final class AnvilClickListener implements Listener {
         consumeInputs(anvil, state);
         anvil.setItem(2, null);
         maybeDamageOrBreakAnvil(view);
-        sendPrivateCostMessage(player, cost);
+        if (shouldSendPrivateCostMessage(state, settings)) {
+            sendPrivateCostMessage(player, cost);
+        }
 
         forceSync(player);
     }
@@ -295,6 +297,14 @@ public final class AnvilClickListener implements Listener {
     private void forceSync(Player player) {
         player.updateInventory();
         Bukkit.getScheduler().runTask(plugin, player::updateInventory);
+    }
+
+    private boolean shouldSendPrivateCostMessage(AnvilSessionState state, PluginSettings settings) {
+        if (!state.tooExpensiveBypassNeeded()) {
+            return false;
+        }
+
+        return settings.showTrueCostChatMessage().shouldSend(state.trueCostDisplayedInUi());
     }
 
     private void sendPrivateCostMessage(Player player, int trueCost) {

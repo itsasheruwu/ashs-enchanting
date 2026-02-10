@@ -8,7 +8,9 @@ public record PluginSettings(
         boolean alsoAllowOnCrossbows,
         boolean allowAllProtectionsOnArmor,
         boolean chargeCreative,
-        boolean useLogger
+        boolean useLogger,
+        boolean showTrueCostAbove40InAnvilUi,
+        TrueCostChatMessageMode showTrueCostChatMessage
 ) {
     public static PluginSettings fromConfig(FileConfiguration config) {
         return new PluginSettings(
@@ -17,7 +19,9 @@ public record PluginSettings(
                 config.getBoolean("alsoAllowOnCrossbows", false),
                 config.getBoolean("allowAllProtectionsOnArmor", false),
                 config.getBoolean("chargeCreative", false),
-                config.getBoolean("useLogger", true)
+                config.getBoolean("useLogger", true),
+                config.getBoolean("showTrueCostAbove40InAnvilUi", true),
+                TrueCostChatMessageMode.fromConfig(config.getString("showTrueCostChatMessage", "fallback-only"))
         );
     }
 }

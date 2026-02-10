@@ -4,3 +4,13 @@ alsoAllowOnCrossbows: false
 allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true
+
+# When true and ProtocolLib is installed, the anvil UI can display real 40+ costs.
+# If ProtocolLib is missing, plugin falls back to showing 39 and sends private true-cost chat.
+showTrueCostAbove40InAnvilUi: true
+
+# Controls private true-cost chat messages for 40+ bypassed operations:
+# - always
+# - never
+# - fallback-only
+showTrueCostChatMessage: fallback-only

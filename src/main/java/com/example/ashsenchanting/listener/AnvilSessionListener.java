@@ -25,6 +25,7 @@ public final class AnvilSessionListener implements Listener {
             return;
         }
 
+        plugin.clearAbilitySpoof(player);
         plugin.clearSession(player);
         plugin.clearProcessing(player);
     }
@@ -32,6 +33,7 @@ public final class AnvilSessionListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        plugin.clearAbilitySpoof(player);
         plugin.clearSession(player);
         plugin.clearProcessing(player);
     }
