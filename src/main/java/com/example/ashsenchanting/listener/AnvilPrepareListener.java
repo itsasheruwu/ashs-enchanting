@@ -49,11 +49,15 @@ public final class AnvilPrepareListener implements Listener {
         ItemStack finalResult = patch.result() == null ? null : patch.result().clone();
         event.setResult(finalResult);
 
-        int effectiveRepairCost = vanillaRepairCost;
+        int effectiveRepairCost = EnchantCompatUtil.resolveCompatRepairCost(
+                left,
+                right,
+                view,
+                patch.customCompatApplied(),
+                vanillaRepairCost
+        );
+
         if (patch.customCompatApplied() && finalResult != null) {
-            if (effectiveRepairCost <= 0) {
-                effectiveRepairCost = 1;
-            }
             view.setRepairCost(effectiveRepairCost);
         }
 
