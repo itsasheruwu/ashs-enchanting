@@ -25,12 +25,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.0.9.jar`
+- `target/ashs-enchanting-1.0.10.jar`
 
 ## Install
 
 1. Stop server.
-2. Put `target/ashs-enchanting-1.0.9.jar` in `plugins/`.
+2. Put `target/ashs-enchanting-1.0.10.jar` in `plugins/`.
 3. Start server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml`.
 5. Restart server.
@@ -80,7 +80,7 @@ That message includes a clickable **Click here** link to the technical note:
 
 - `/ashtetest`
   - OP-only command.
-  - Gives a test bow containing all available enchantments at max level.
+  - Gives a test bow with top bow enchantments and `Power IV` (so you can apply/test `Power V` in an anvil).
   - Sets a high prior-work penalty (`RepairCost`) so vanilla anvil logic reaches `Too Expensive!` quickly.
   - Useful for validating `disableTooExpensive` behavior by renaming or combining in an anvil.
 
