@@ -1,6 +1,6 @@
 name: AshsEnchanting
 main: com.example.ashsenchanting.AshsEnchanting
-version: 1.0.4
+version: 1.0.5
 api-version: '1.21'
 description: Removes anvil Too Expensive restriction and allows Infinity+Mending coexistence.
 author: Ash

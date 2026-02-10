@@ -14,6 +14,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.view.AnvilView;
 
 public final class AnvilPrepareListener implements Listener {
+    private static final int VANILLA_TOO_EXPENSIVE_THRESHOLD = 40;
+    private static final int HIGHEST_DISPLAYABLE_COST = VANILLA_TOO_EXPENSIVE_THRESHOLD - 1;
+
     private final AshsEnchanting plugin;
 
     public AnvilPrepareListener(AshsEnchanting plugin) {
@@ -57,13 +60,21 @@ public final class AnvilPrepareListener implements Listener {
                 vanillaRepairCost
         );
 
-        if (patch.customCompatApplied() && finalResult != null) {
-            view.setRepairCost(effectiveRepairCost);
-        }
-
         boolean tooExpensiveBypassNeeded = settings.disableTooExpensive()
                 && finalResult != null
-                && effectiveRepairCost > maximumRepairCost;
+                && effectiveRepairCost >= VANILLA_TOO_EXPENSIVE_THRESHOLD;
+
+        if (settings.disableTooExpensive()) {
+            view.setMaximumRepairCost(Integer.MAX_VALUE);
+            maximumRepairCost = Integer.MAX_VALUE;
+        }
+
+        if (finalResult != null && (patch.customCompatApplied() || settings.disableTooExpensive())) {
+            int displayedRepairCost = tooExpensiveBypassNeeded
+                    ? HIGHEST_DISPLAYABLE_COST
+                    : effectiveRepairCost;
+            view.setRepairCost(displayedRepairCost);
+        }
 
         boolean customCompatNeedsTakeover = EnchantCompatUtil.shouldTakeOverForCompat(
                 new EnchantCompatUtil.AnvilSessionDecision(

@@ -194,6 +194,10 @@ public final class AnvilClickListener implements Listener {
     }
 
     private int resolveOperationCost(AnvilView view, AnvilSessionState state) {
+        if (state.tooExpensiveBypassNeeded()) {
+            return Math.max(0, state.repairCost());
+        }
+
         int liveCost = Math.max(0, view.getRepairCost());
         if (liveCost > 0) {
             return liveCost;
