@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class AshTestCommand implements CommandExecutor {
-    private static final int TEST_BOW_REPAIR_COST = 120;
+    private static final int TEST_BOW_REPAIR_COST = 45;
     private static final int TEST_POWER_LEVEL = 4;
 
     @Override

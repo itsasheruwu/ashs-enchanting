@@ -35,6 +35,7 @@ public final class AnvilClickListener implements Listener {
     private static final float VANILLA_ANVIL_BREAK_CHANCE = 0.12F;
     private static final String TECHNICAL_NOTE_URL =
             "https://github.com/itsasheruwu/ashs-enchanting/blob/main/docs/anvil-cost-behavior.md";
+    private static final String MESSAGE_PREFIX = ChatColor.GOLD + "[Ash's Enchanting] " + ChatColor.YELLOW;
 
     private final AshsEnchanting plugin;
 
@@ -90,7 +91,7 @@ public final class AnvilClickListener implements Listener {
         ItemStack result = copyIfPresent(anvil.getItem(2));
 
         if (isAir(result)
-                && state.customCompatApplied()
+                && (state.customCompatApplied() || state.tooExpensiveBypassNeeded())
                 && inputsStillMatchState(anvil, state)) {
             result = copyIfPresent(state.preparedResult());
         }
@@ -104,6 +105,7 @@ public final class AnvilClickListener implements Listener {
         int cost = resolveOperationCost(view, state);
 
         if (mustChargePlayer(player, settings) && player.getLevel() < cost) {
+            sendNotEnoughLevels(player, cost);
             forceSync(player);
             return;
         }
@@ -315,6 +317,10 @@ public final class AnvilClickListener implements Listener {
         ));
 
         player.spigot().sendMessage(prefix, body, link);
+    }
+
+    private void sendNotEnoughLevels(Player player, int requiredCost) {
+        player.sendMessage(MESSAGE_PREFIX + "You need " + requiredCost + " levels to take this anvil result.");
     }
 
     private static ItemStack copyIfPresent(ItemStack stack) {
