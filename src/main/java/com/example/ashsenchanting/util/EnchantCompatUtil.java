@@ -25,11 +25,11 @@ public final class EnchantCompatUtil {
             ItemStack vanillaResult,
             AnvilView view
     ) {
-        if (left == null || right == null) {
+        if (left == null || right == null || left.getType() == Material.AIR || right.getType() == Material.AIR) {
             return PatchResult.noChange(vanillaResult);
         }
 
-        if (!isTargetItem(settings, left.getType())) {
+        if (!isInfinityMendingTarget(settings, left.getType())) {
             return PatchResult.noChange(vanillaResult);
         }
 
@@ -39,7 +39,6 @@ public final class EnchantCompatUtil {
 
         int sourceInfinity = getEnchantLevel(right, Enchantment.INFINITY);
         int sourceMending = getEnchantLevel(right, Enchantment.MENDING);
-
         if (sourceInfinity <= 0 && sourceMending <= 0) {
             return PatchResult.noChange(vanillaResult);
         }
@@ -47,23 +46,22 @@ public final class EnchantCompatUtil {
         ItemStack workingResult = vanillaResult != null ? vanillaResult.clone() : left.clone();
         applyRenameIfPresent(workingResult, view.getRenameText());
 
-        int beforeInfinity = workingResult.getEnchantmentLevel(Enchantment.INFINITY);
-        int beforeMending = workingResult.getEnchantmentLevel(Enchantment.MENDING);
-
         boolean changed = false;
 
         if (sourceInfinity > 0) {
-            int mergedInfinity = Math.max(beforeInfinity, sourceInfinity);
-            if (mergedInfinity > beforeInfinity) {
-                workingResult.addUnsafeEnchantment(Enchantment.INFINITY, mergedInfinity);
+            int current = workingResult.getEnchantmentLevel(Enchantment.INFINITY);
+            int merged = combineAnvilLevels(current, sourceInfinity, Enchantment.INFINITY.getMaxLevel());
+            if (merged > current) {
+                workingResult.addUnsafeEnchantment(Enchantment.INFINITY, merged);
                 changed = true;
             }
         }
 
         if (sourceMending > 0) {
-            int mergedMending = Math.max(beforeMending, sourceMending);
-            if (mergedMending > beforeMending) {
-                workingResult.addUnsafeEnchantment(Enchantment.MENDING, mergedMending);
+            int current = workingResult.getEnchantmentLevel(Enchantment.MENDING);
+            int merged = combineAnvilLevels(current, sourceMending, Enchantment.MENDING.getMaxLevel());
+            if (merged > current) {
+                workingResult.addUnsafeEnchantment(Enchantment.MENDING, merged);
                 changed = true;
             }
         }
@@ -76,13 +74,59 @@ public final class EnchantCompatUtil {
             applyIncreasedRepairCost(workingResult, left, right);
         }
 
-        return new PatchResult(
-                workingResult,
-                true,
-                vanillaResult == null
-                        || beforeInfinity != workingResult.getEnchantmentLevel(Enchantment.INFINITY)
-                        || beforeMending != workingResult.getEnchantmentLevel(Enchantment.MENDING)
-        );
+        return new PatchResult(workingResult, true, true);
+    }
+
+    public static PatchResult patchAllProtectionsOnArmor(
+            PluginSettings settings,
+            ItemStack left,
+            ItemStack right,
+            ItemStack vanillaResult,
+            AnvilView view
+    ) {
+        if (!settings.allowAllProtectionsOnArmor()) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        if (left == null || right == null || left.getType() == Material.AIR || right.getType() == Material.AIR) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        if (!isArmorPiece(left.getType()) || !isValidMergeInput(left, right)) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        Map<Enchantment, Integer> rightEnchants = getAllEnchantLevels(right);
+        if (rightEnchants.isEmpty()) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        ItemStack workingResult = vanillaResult != null ? vanillaResult.clone() : left.clone();
+        applyRenameIfPresent(workingResult, view.getRenameText());
+
+        boolean changed = false;
+
+        changed |= maybeApplyProtection(workingResult, rightEnchants, Enchantment.PROTECTION);
+        changed |= maybeApplyProtection(workingResult, rightEnchants, Enchantment.FIRE_PROTECTION);
+        changed |= maybeApplyProtection(workingResult, rightEnchants, Enchantment.BLAST_PROTECTION);
+        changed |= maybeApplyProtection(workingResult, rightEnchants, Enchantment.PROJECTILE_PROTECTION);
+
+        if (!changed) {
+            return PatchResult.noChange(vanillaResult);
+        }
+
+        if (vanillaResult == null) {
+            applyIncreasedRepairCost(workingResult, left, right);
+        }
+
+        return new PatchResult(workingResult, true, true);
+    }
+
+    public static PatchResult merge(PatchResult first, PatchResult second) {
+        ItemStack mergedResult = second.result() != null ? second.result().clone() : null;
+        boolean mergedCompat = first.customCompatApplied() || second.customCompatApplied();
+        boolean anyChange = first.anyChange() || second.anyChange();
+        return new PatchResult(mergedResult, mergedCompat, anyChange);
     }
 
     public static boolean shouldTakeOverForCompat(AnvilSessionDecision decision) {
@@ -90,6 +134,7 @@ public final class EnchantCompatUtil {
     }
 
     public static int resolveCompatRepairCost(
+            PluginSettings settings,
             ItemStack left,
             ItemStack right,
             AnvilView view,
@@ -104,7 +149,7 @@ public final class EnchantCompatUtil {
             return vanillaRepairCost;
         }
 
-        int computed = calculateVanillaLikeCompatCost(left, right, view.getRenameText());
+        int computed = calculateVanillaLikeCompatCost(settings, left, right, view.getRenameText());
         if (computed > 0) {
             return computed;
         }
@@ -122,13 +167,18 @@ public final class EnchantCompatUtil {
         return 0;
     }
 
-    private static int calculateVanillaLikeCompatCost(ItemStack left, ItemStack right, String renameText) {
+    private static int calculateVanillaLikeCompatCost(
+            PluginSettings settings,
+            ItemStack left,
+            ItemStack right,
+            String renameText
+    ) {
         if (left == null || right == null || left.getType() == Material.AIR || right.getType() == Material.AIR) {
             return 0;
         }
 
         boolean rightIsBook = right.getType() == Material.ENCHANTED_BOOK;
-        int cost = getRepairCost(left) + getRepairCost(right);
+        int baseCost = getRepairCost(left) + getRepairCost(right);
         int operationCost = 0;
 
         if (!rightIsBook
@@ -150,13 +200,10 @@ public final class EnchantCompatUtil {
             }
 
             int currentLevel = merged.getOrDefault(enchantment, 0);
-            int mergedLevel = currentLevel == offeredLevel
-                    ? offeredLevel + 1
-                    : Math.max(currentLevel, offeredLevel);
-            mergedLevel = Math.min(mergedLevel, enchantment.getMaxLevel());
+            int mergedLevel = combineAnvilLevels(currentLevel, offeredLevel, enchantment.getMaxLevel());
 
-            if (!canApplyCompatAware(enchantment, left, merged.keySet(), rightIsBook)) {
-                operationCost += countIncompatible(enchantment, merged.keySet());
+            if (!canApplyCompatAware(settings, enchantment, left, merged.keySet(), rightIsBook)) {
+                operationCost += countIncompatible(settings, enchantment, left, merged.keySet());
                 continue;
             }
 
@@ -169,6 +216,7 @@ public final class EnchantCompatUtil {
             if (rightIsBook) {
                 enchantCost = Math.max(1, enchantCost / 2);
             }
+
             operationCost += enchantCost * mergedLevel;
 
             if (left.getAmount() > 1) {
@@ -183,11 +231,34 @@ public final class EnchantCompatUtil {
             return 0;
         }
 
-        long total = (long) cost + operationCost;
+        long total = (long) baseCost + operationCost;
         if (total > Integer.MAX_VALUE) {
             return Integer.MAX_VALUE;
         }
         return (int) total;
+    }
+
+    private static boolean maybeApplyProtection(ItemStack result, Map<Enchantment, Integer> offered, Enchantment protectionType) {
+        int offeredLevel = offered.getOrDefault(protectionType, 0);
+        if (offeredLevel <= 0) {
+            return false;
+        }
+
+        int currentLevel = result.getEnchantmentLevel(protectionType);
+        int merged = combineAnvilLevels(currentLevel, offeredLevel, protectionType.getMaxLevel());
+        if (merged <= currentLevel) {
+            return false;
+        }
+
+        result.addUnsafeEnchantment(protectionType, merged);
+        return true;
+    }
+
+    private static int combineAnvilLevels(int currentLevel, int offeredLevel, int maxLevel) {
+        int merged = currentLevel == offeredLevel
+                ? offeredLevel + 1
+                : Math.max(currentLevel, offeredLevel);
+        return Math.min(maxLevel, merged);
     }
 
     private static Map<Enchantment, Integer> getAllEnchantLevels(ItemStack item) {
@@ -201,6 +272,7 @@ public final class EnchantCompatUtil {
     }
 
     private static boolean canApplyCompatAware(
+            PluginSettings settings,
             Enchantment candidate,
             ItemStack target,
             Set<Enchantment> currentEnchants,
@@ -217,7 +289,7 @@ public final class EnchantCompatUtil {
             if (!candidate.conflictsWith(existing)) {
                 continue;
             }
-            if (isInfinityMendingPair(candidate, existing)) {
+            if (isAllowedConflictOverride(settings, target.getType(), candidate, existing)) {
                 continue;
             }
             return false;
@@ -226,7 +298,12 @@ public final class EnchantCompatUtil {
         return true;
     }
 
-    private static int countIncompatible(Enchantment candidate, Set<Enchantment> currentEnchants) {
+    private static int countIncompatible(
+            PluginSettings settings,
+            Enchantment candidate,
+            ItemStack target,
+            Set<Enchantment> currentEnchants
+    ) {
         int count = 0;
         for (Enchantment existing : currentEnchants) {
             if (existing.equals(candidate)) {
@@ -235,7 +312,7 @@ public final class EnchantCompatUtil {
             if (!candidate.conflictsWith(existing)) {
                 continue;
             }
-            if (isInfinityMendingPair(candidate, existing)) {
+            if (isAllowedConflictOverride(settings, target.getType(), candidate, existing)) {
                 continue;
             }
             count++;
@@ -243,9 +320,39 @@ public final class EnchantCompatUtil {
         return count;
     }
 
+    private static boolean isAllowedConflictOverride(
+            PluginSettings settings,
+            Material targetMaterial,
+            Enchantment first,
+            Enchantment second
+    ) {
+        if (isInfinityMendingPair(first, second)) {
+            return true;
+        }
+
+        return settings.allowAllProtectionsOnArmor()
+                && isArmorPiece(targetMaterial)
+                && isProtectionConflictPair(first, second);
+    }
+
     private static boolean isInfinityMendingPair(Enchantment first, Enchantment second) {
         return (first.equals(Enchantment.INFINITY) && second.equals(Enchantment.MENDING))
                 || (first.equals(Enchantment.MENDING) && second.equals(Enchantment.INFINITY));
+    }
+
+    private static boolean isProtectionConflictPair(Enchantment first, Enchantment second) {
+        if (first.equals(second)) {
+            return false;
+        }
+
+        return isMainProtectionType(first) && isMainProtectionType(second);
+    }
+
+    private static boolean isMainProtectionType(Enchantment enchantment) {
+        return enchantment.equals(Enchantment.PROTECTION)
+                || enchantment.equals(Enchantment.FIRE_PROTECTION)
+                || enchantment.equals(Enchantment.BLAST_PROTECTION)
+                || enchantment.equals(Enchantment.PROJECTILE_PROTECTION);
     }
 
     private static int calculateRenameCost(ItemStack left, String renameText) {
@@ -293,21 +400,8 @@ public final class EnchantCompatUtil {
                 || enchantment.equals(Enchantment.BANE_OF_ARTHROPODS)
                 || enchantment.equals(Enchantment.KNOCKBACK)
                 || enchantment.equals(Enchantment.UNBREAKING)
-                || enchantment.equals(Enchantment.QUICK_CHARGE)
-                || enchantment.equals(Enchantment.FEATHER_FALLING)) {
+                || enchantment.equals(Enchantment.QUICK_CHARGE)) {
             return 2;
-        }
-
-        if (enchantment.equals(Enchantment.THORNS)
-                || enchantment.equals(Enchantment.SILK_TOUCH)
-                || enchantment.equals(Enchantment.INFINITY)
-                || enchantment.equals(Enchantment.BINDING_CURSE)
-                || enchantment.equals(Enchantment.VANISHING_CURSE)
-                || enchantment.equals(Enchantment.CHANNELING)
-                || enchantment.equals(Enchantment.SOUL_SPEED)
-                || enchantment.equals(Enchantment.SWIFT_SNEAK)
-                || enchantment.equals(Enchantment.WIND_BURST)) {
-            return 8;
         }
 
         if (enchantment.equals(Enchantment.BLAST_PROTECTION)
@@ -331,14 +425,35 @@ public final class EnchantCompatUtil {
             return 4;
         }
 
+        if (enchantment.equals(Enchantment.THORNS)
+                || enchantment.equals(Enchantment.SILK_TOUCH)
+                || enchantment.equals(Enchantment.INFINITY)
+                || enchantment.equals(Enchantment.BINDING_CURSE)
+                || enchantment.equals(Enchantment.VANISHING_CURSE)
+                || enchantment.equals(Enchantment.CHANNELING)
+                || enchantment.equals(Enchantment.SOUL_SPEED)
+                || enchantment.equals(Enchantment.SWIFT_SNEAK)
+                || enchantment.equals(Enchantment.WIND_BURST)) {
+            return 8;
+        }
+
         return 1;
     }
 
-    private static boolean isTargetItem(PluginSettings settings, Material material) {
+    private static boolean isInfinityMendingTarget(PluginSettings settings, Material material) {
         if (material == Material.BOW) {
             return settings.allowInfinityMendingOnBows();
         }
         return material == Material.CROSSBOW && settings.alsoAllowOnCrossbows();
+    }
+
+    private static boolean isArmorPiece(Material material) {
+        String name = material.name();
+        return name.endsWith("_HELMET")
+                || name.endsWith("_CHESTPLATE")
+                || name.endsWith("_LEGGINGS")
+                || name.endsWith("_BOOTS")
+                || material == Material.TURTLE_HELMET;
     }
 
     private static boolean isValidMergeInput(ItemStack left, ItemStack right) {
