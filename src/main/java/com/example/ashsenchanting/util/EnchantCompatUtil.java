@@ -2,6 +2,7 @@ package com.example.ashsenchanting.util;
 
 import com.example.ashsenchanting.config.PluginSettings;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -11,6 +12,7 @@ import org.bukkit.inventory.meta.Repairable;
 import org.bukkit.inventory.view.AnvilView;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -281,7 +283,146 @@ public final class EnchantCompatUtil {
                 levels.merge(entry.getKey(), entry.getValue(), Math::max);
             }
         }
+        for (Map.Entry<Enchantment, Integer> entry : extractEnchantLevelsFromSerializedMeta(item).entrySet()) {
+            levels.merge(entry.getKey(), entry.getValue(), Math::max);
+        }
         return levels;
+    }
+
+    private static Map<Enchantment, Integer> extractEnchantLevelsFromSerializedMeta(ItemStack item) {
+        Map<Enchantment, Integer> parsed = new HashMap<>();
+        try {
+            Map<String, Object> serialized = item.serialize();
+            Object meta = serialized.get("meta");
+            if (!(meta instanceof Map<?, ?> metaMap)) {
+                return parsed;
+            }
+
+            Map<String, Integer> discovered = new HashMap<>();
+            collectEnchantEntries(metaMap, discovered, 0);
+            for (Map.Entry<String, Integer> entry : discovered.entrySet()) {
+                Enchantment enchantment = resolveEnchantment(entry.getKey());
+                if (enchantment == null || entry.getValue() == null || entry.getValue() <= 0) {
+                    continue;
+                }
+                parsed.merge(enchantment, entry.getValue(), Math::max);
+            }
+        } catch (Throwable ignored) {
+            // Best-effort fallback for non-standard metadata shapes.
+        }
+        return parsed;
+    }
+
+    private static void collectEnchantEntries(Object node, Map<String, Integer> discovered, int depth) {
+        if (node == null || depth > 8) {
+            return;
+        }
+
+        if (node instanceof Map<?, ?> mapNode) {
+            for (Map.Entry<?, ?> entry : mapNode.entrySet()) {
+                String key = String.valueOf(entry.getKey());
+                Object value = entry.getValue();
+                String normalized = key.toLowerCase(Locale.ROOT);
+
+                if (normalized.contains("enchant")) {
+                    collectKnownEnchantContainer(value, discovered);
+                }
+
+                collectEnchantEntries(value, discovered, depth + 1);
+            }
+            return;
+        }
+
+        if (node instanceof Iterable<?> iterable) {
+            for (Object child : iterable) {
+                collectEnchantEntries(child, discovered, depth + 1);
+            }
+        }
+    }
+
+    private static void collectKnownEnchantContainer(Object node, Map<String, Integer> discovered) {
+        if (node instanceof Map<?, ?> enchantMap) {
+            for (Map.Entry<?, ?> entry : enchantMap.entrySet()) {
+                Integer level = parseLevel(entry.getValue());
+                if (level == null || level <= 0) {
+                    continue;
+                }
+                discovered.merge(String.valueOf(entry.getKey()), level, Math::max);
+            }
+            return;
+        }
+
+        if (node instanceof Iterable<?> iterable) {
+            for (Object child : iterable) {
+                if (!(child instanceof Map<?, ?> childMap)) {
+                    continue;
+                }
+                String enchantKey = null;
+                Integer level = null;
+                for (Map.Entry<?, ?> childEntry : childMap.entrySet()) {
+                    String key = String.valueOf(childEntry.getKey()).toLowerCase(Locale.ROOT);
+                    Object value = childEntry.getValue();
+                    if (key.equals("id") || key.equals("key") || key.equals("enchant") || key.equals("enchantment")) {
+                        enchantKey = String.valueOf(value);
+                    } else if (key.equals("lvl") || key.equals("level")) {
+                        level = parseLevel(value);
+                    }
+                }
+                if (enchantKey != null && level != null && level > 0) {
+                    discovered.merge(enchantKey, level, Math::max);
+                }
+            }
+        }
+    }
+
+    private static Integer parseLevel(Object raw) {
+        if (raw instanceof Number number) {
+            return number.intValue();
+        }
+
+        if (raw == null) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(String.valueOf(raw));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static Enchantment resolveEnchantment(String rawKey) {
+        if (rawKey == null) {
+            return null;
+        }
+
+        String key = rawKey.trim().toLowerCase(Locale.ROOT);
+        if (key.isEmpty()) {
+            return null;
+        }
+
+        if (key.startsWith("minecraft:")) {
+            key = key.substring("minecraft:".length());
+        }
+        key = key.replace(' ', '_');
+
+        NamespacedKey namespaced = NamespacedKey.fromString("minecraft:" + key);
+        if (namespaced != null) {
+            Enchantment direct = Enchantment.getByKey(namespaced);
+            if (direct != null) {
+                return direct;
+            }
+        }
+
+        return switch (key) {
+            case "infinity", "arrow_infinite", "infinity_arrows" -> Enchantment.INFINITY;
+            case "mending" -> Enchantment.MENDING;
+            case "protection", "protection_environmental" -> Enchantment.PROTECTION;
+            case "fire_protection", "protection_fire" -> Enchantment.FIRE_PROTECTION;
+            case "blast_protection", "protection_explosions" -> Enchantment.BLAST_PROTECTION;
+            case "projectile_protection", "protection_projectile" -> Enchantment.PROJECTILE_PROTECTION;
+            default -> null;
+        };
     }
 
     private static boolean canApplyCompatAware(

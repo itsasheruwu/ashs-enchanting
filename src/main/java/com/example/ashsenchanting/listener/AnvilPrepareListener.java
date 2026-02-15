@@ -148,10 +148,12 @@ public final class AnvilPrepareListener implements Listener {
         if (right.getItemMeta() instanceof EnchantmentStorageMeta storageMeta) {
             stored = storageMeta.getStoredEnchants().toString();
         }
+        Object serializedMeta = right.serialize().get("meta");
 
         plugin.logInfo("Bedrock compat miss on bow+mending+book: rightType=" + right.getType()
                 + ", directEnchants=" + right.getEnchantments()
                 + ", storedEnchants=" + stored
-                + ", itemMetaClass=" + (right.getItemMeta() == null ? "null" : right.getItemMeta().getClass().getName()));
+                + ", itemMetaClass=" + (right.getItemMeta() == null ? "null" : right.getItemMeta().getClass().getName())
+                + ", serializedMeta=" + String.valueOf(serializedMeta));
     }
 }
