@@ -5,6 +5,7 @@ import com.example.ashsenchanting.config.PluginSettings;
 import com.example.ashsenchanting.model.AnvilSessionState;
 import com.example.ashsenchanting.util.EnchantCompatUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -191,6 +192,15 @@ public final class AnvilPrepareListener implements Listener {
             return;
         }
 
+        PluginSettings settings = plugin.getPluginSettings();
+        if (settings == null) {
+            return;
+        }
+        if (settings.bedrockCompatAutoApplyRequiresSneak() && !player.isSneaking()) {
+            maybeSendBedrockSneakConfirmHint(player);
+            return;
+        }
+
         AnvilInventory anvil = view.getTopInventory();
         if (!inputsStillMatchState(anvil, state)) {
             return;
@@ -213,6 +223,14 @@ public final class AnvilPrepareListener implements Listener {
         } finally {
             plugin.endProcessing(player);
         }
+    }
+
+    private void maybeSendBedrockSneakConfirmHint(Player player) {
+        if (!plugin.markBedrockAutoApplyHinted(player)) {
+            return;
+        }
+        player.sendMessage(ChatColor.YELLOW
+                + "[Ash's Enchanting] Sneak (crouch) while using the anvil to confirm this Bedrock merge.");
     }
 
     private void applyBedrockCompatMerge(

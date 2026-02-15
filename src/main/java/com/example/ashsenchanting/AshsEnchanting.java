@@ -26,6 +26,7 @@ public final class AshsEnchanting extends JavaPlugin {
     private final Map<UUID, AnvilSessionState> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> processingPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> spoofedPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> bedrockAutoApplyHintedPlayers = ConcurrentHashMap.newKeySet();
     private ClientAbilitySpoofer abilitySpoofer = new NoopAbilitySpoofer();
     private BedrockPlayerDetector bedrockPlayerDetector = new NoopBedrockDetector("none");
     private boolean protocolLibFallbackWarningLogged;
@@ -52,6 +53,7 @@ public final class AshsEnchanting extends JavaPlugin {
         sessions.clear();
         processingPlayers.clear();
         spoofedPlayers.clear();
+        bedrockAutoApplyHintedPlayers.clear();
     }
 
     public void reloadPluginSettings() {
@@ -92,6 +94,7 @@ public final class AshsEnchanting extends JavaPlugin {
 
     public void clearSession(Player player) {
         sessions.remove(player.getUniqueId());
+        bedrockAutoApplyHintedPlayers.remove(player.getUniqueId());
     }
 
     public boolean beginProcessing(Player player) {
@@ -108,6 +111,10 @@ public final class AshsEnchanting extends JavaPlugin {
 
     public void clearProcessing(Player player) {
         processingPlayers.remove(player.getUniqueId());
+    }
+
+    public boolean markBedrockAutoApplyHinted(Player player) {
+        return bedrockAutoApplyHintedPlayers.add(player.getUniqueId());
     }
 
     public boolean isAbilitySpoofActive(Player player) {

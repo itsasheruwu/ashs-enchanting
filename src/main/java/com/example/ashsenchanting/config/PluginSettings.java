@@ -9,6 +9,7 @@ public record PluginSettings(
         boolean allowAllProtectionsOnArmor,
         boolean chargeCreative,
         boolean useLogger,
+        boolean bedrockCompatAutoApplyRequiresSneak,
         boolean showTrueCostAbove40InAnvilUi,
         TrueCostChatMessageMode showTrueCostChatMessage
 ) {
@@ -20,6 +21,7 @@ public record PluginSettings(
                 config.getBoolean("allowAllProtectionsOnArmor", false),
                 config.getBoolean("chargeCreative", false),
                 config.getBoolean("useLogger", true),
+                config.getBoolean("bedrockCompatAutoApplyRequiresSneak", true),
                 config.getBoolean("showTrueCostAbove40InAnvilUi", true),
                 TrueCostChatMessageMode.fromConfig(config.getString("showTrueCostChatMessage", "fallback-only"))
         );
