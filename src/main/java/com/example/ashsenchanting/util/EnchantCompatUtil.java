@@ -477,12 +477,36 @@ public final class EnchantCompatUtil {
     }
 
     private static int getEnchantLevel(ItemStack item, Enchantment enchantment) {
-        int itemLevel = item.getEnchantmentLevel(enchantment);
-        if (item.getType() == Material.ENCHANTED_BOOK && item.getItemMeta() instanceof EnchantmentStorageMeta storageMeta) {
-            int storedLevel = storageMeta.getStoredEnchantLevel(enchantment);
-            return Math.max(itemLevel, storedLevel);
+        Map<Enchantment, Integer> levels = getAllEnchantLevels(item);
+        int level = Math.max(0, levels.getOrDefault(enchantment, 0));
+        if (level > 0) {
+            return level;
         }
-        return itemLevel;
+
+        String targetKey = enchantment.getKey().getKey();
+        for (Map.Entry<Enchantment, Integer> entry : levels.entrySet()) {
+            if (entry.getValue() == null || entry.getValue() <= 0) {
+                continue;
+            }
+            if (!matchesEnchantByKey(entry.getKey(), targetKey)) {
+                continue;
+            }
+            level = Math.max(level, entry.getValue());
+        }
+        return level;
+    }
+
+    private static boolean matchesEnchantByKey(Enchantment enchantment, String targetKey) {
+        String current = enchantment.getKey().getKey();
+        if (current.equals(targetKey)) {
+            return true;
+        }
+
+        if ("infinity".equals(targetKey)) {
+            return "arrow_infinite".equals(current) || "infinity_arrows".equals(current);
+        }
+
+        return false;
     }
 
     private static void applyRenameIfPresent(ItemStack item, String renameText) {

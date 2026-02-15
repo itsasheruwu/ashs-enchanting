@@ -5,6 +5,7 @@ import com.example.ashsenchanting.config.PluginSettings;
 import com.example.ashsenchanting.model.AnvilSessionState;
 import com.example.ashsenchanting.util.EnchantCompatUtil;
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -12,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.view.AnvilView;
 
 public final class AnvilPrepareListener implements Listener {
@@ -58,6 +60,7 @@ public final class AnvilPrepareListener implements Listener {
                 view
         );
         EnchantCompatUtil.PatchResult patch = EnchantCompatUtil.merge(infinityPatch, protectionPatch);
+        maybeLogBedrockCompatMiss(isBedrock, settings, left, right, patch.customCompatApplied());
 
         ItemStack finalResult = patch.result() == null ? null : patch.result().clone();
         event.setResult(finalResult);
@@ -119,5 +122,36 @@ public final class AnvilPrepareListener implements Listener {
                 trueCostDisplayModeActive,
                 abilitySpoofNeeded
         ));
+    }
+
+    private void maybeLogBedrockCompatMiss(
+            boolean isBedrock,
+            PluginSettings settings,
+            ItemStack left,
+            ItemStack right,
+            boolean customCompatApplied
+    ) {
+        if (!isBedrock || settings == null || !settings.useLogger() || customCompatApplied) {
+            return;
+        }
+        if (left == null || right == null || left.getType() != Material.BOW) {
+            return;
+        }
+        if (!left.containsEnchantment(Enchantment.MENDING)) {
+            return;
+        }
+        if (right.getType() != Material.ENCHANTED_BOOK && right.getType() != Material.BOOK) {
+            return;
+        }
+
+        String stored = "none";
+        if (right.getItemMeta() instanceof EnchantmentStorageMeta storageMeta) {
+            stored = storageMeta.getStoredEnchants().toString();
+        }
+
+        plugin.logInfo("Bedrock compat miss on bow+mending+book: rightType=" + right.getType()
+                + ", directEnchants=" + right.getEnchantments()
+                + ", storedEnchants=" + stored
+                + ", itemMetaClass=" + (right.getItemMeta() == null ? "null" : right.getItemMeta().getClass().getName()));
     }
 }
