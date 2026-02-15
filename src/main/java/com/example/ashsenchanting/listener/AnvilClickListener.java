@@ -25,6 +25,7 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.view.AnvilView;
@@ -52,10 +53,6 @@ public final class AnvilClickListener implements Listener {
             return;
         }
 
-        if (event.getRawSlot() != 2) {
-            return;
-        }
-
         AnvilSessionState state = plugin.getSession(player);
         if (state == null || state.topInventory() != event.getView().getTopInventory()) {
             return;
@@ -63,6 +60,13 @@ public final class AnvilClickListener implements Listener {
 
         boolean shouldTakeOver = state.tooExpensiveBypassNeeded() || state.customCompatApplied();
         if (!shouldTakeOver) {
+            return;
+        }
+
+        if (event.getRawSlot() != 2) {
+            if (shouldAttemptBedrockAutoApply(player, event, state)) {
+                scheduleBedrockAutoApply(player);
+            }
             return;
         }
 
@@ -88,6 +92,90 @@ public final class AnvilClickListener implements Listener {
         } finally {
             plugin.endProcessing(player);
         }
+    }
+
+    private boolean shouldAttemptBedrockAutoApply(Player player, InventoryClickEvent event, AnvilSessionState state) {
+        if (!plugin.isBedrockPlayer(player) || !state.customCompatApplied()) {
+            return false;
+        }
+        if (event.getClickedInventory() == null || event.getClickedInventory() != event.getView().getTopInventory()) {
+            return false;
+        }
+        int rawSlot = event.getRawSlot();
+        return rawSlot == 0 || rawSlot == 1;
+    }
+
+    private void scheduleBedrockAutoApply(Player player) {
+        Bukkit.getScheduler().runTask(plugin, () -> tryBedrockAutoApply(player));
+    }
+
+    private void tryBedrockAutoApply(Player player) {
+        if (!player.isOnline()) {
+            return;
+        }
+
+        InventoryView openView = player.getOpenInventory();
+        if (!(openView instanceof AnvilView anvilView)) {
+            return;
+        }
+
+        AnvilSessionState state = plugin.getSession(player);
+        if (state == null || state.topInventory() != anvilView.getTopInventory()) {
+            return;
+        }
+        if (!state.customCompatApplied()) {
+            return;
+        }
+
+        if (!plugin.beginProcessing(player)) {
+            return;
+        }
+
+        try {
+            processBedrockAutoApply(player, anvilView, state);
+        } finally {
+            plugin.endProcessing(player);
+        }
+    }
+
+    private void processBedrockAutoApply(Player player, AnvilView view, AnvilSessionState state) {
+        AnvilInventory anvil = view.getTopInventory();
+        if (isAir(anvil.getItem(0)) || isAir(anvil.getItem(1))) {
+            return;
+        }
+
+        ItemStack result = copyIfPresent(anvil.getItem(2));
+        if (isAir(result) && inputsStillMatchState(anvil, state)) {
+            result = copyIfPresent(state.preparedResult());
+        }
+        if (isAir(result)) {
+            return;
+        }
+
+        PluginSettings settings = plugin.getPluginSettings();
+        int cost = resolveOperationCost(view, state);
+        if (mustChargePlayer(player, settings) && player.getLevel() < cost) {
+            return;
+        }
+        if (!canFit(player.getInventory(), result)) {
+            forceSync(player);
+            return;
+        }
+
+        player.getInventory().addItem(result.clone());
+        if (mustChargePlayer(player, settings) && cost > 0) {
+            player.giveExpLevels(-cost);
+        }
+
+        consumeInputs(anvil, state);
+        anvil.setItem(2, null);
+        maybeDamageOrBreakAnvil(view);
+        if (shouldSendPrivateCostMessage(state, settings)) {
+            sendPrivateCostMessage(player, cost);
+        }
+
+        logBedrockAutoApplied(player, cost, result);
+        forceSync(player);
     }
 
     private void processManualTake(InventoryClickEvent event, Player player, AnvilView view, AnvilSessionState state) {
@@ -334,6 +422,19 @@ public final class AnvilClickListener implements Listener {
                 + ", click=" + event.getClick()
                 + ", action=" + event.getAction()
                 + ", rawSlot=" + event.getRawSlot());
+    }
+
+    private void logBedrockAutoApplied(Player player, int cost, ItemStack result) {
+        PluginSettings settings = plugin.getPluginSettings();
+        if (settings == null || !settings.useLogger()) {
+            return;
+        }
+
+        plugin.logInfo("Bedrock auto-applied compat anvil merge: player=" + player.getName()
+                + " (" + player.getUniqueId() + ")"
+                + ", result=" + result.getType()
+                + ", amount=" + result.getAmount()
+                + ", cost=" + cost);
     }
 
     private void forceSync(Player player) {
