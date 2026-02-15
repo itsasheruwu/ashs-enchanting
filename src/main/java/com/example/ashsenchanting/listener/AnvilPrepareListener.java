@@ -99,6 +99,10 @@ public final class AnvilPrepareListener implements Listener {
                         vanillaRepairCost == 0
                 )
         );
+        if (isBedrock && patch.customCompatApplied()) {
+            // Bedrock/Geyser clients may not surface custom compat results reliably in UI.
+            customCompatNeedsTakeover = true;
+        }
 
         int effectiveRightConsume = EnchantCompatUtil.resolveRepairItemConsumption(
                 vanillaRepairItemCountCost,

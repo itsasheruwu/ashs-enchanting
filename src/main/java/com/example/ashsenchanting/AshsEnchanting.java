@@ -13,6 +13,7 @@ import com.example.ashsenchanting.packet.NoopAbilitySpoofer;
 import com.example.ashsenchanting.packet.ProtocolLibAbilitySpoofer;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashSet;
@@ -175,6 +176,17 @@ public final class AshsEnchanting extends JavaPlugin {
     private void initializeBedrockDetector() {
         bedrockPlayerDetector = BedrockDetectorFactory.create();
         getLogger().info("Bedrock detector initialized: " + bedrockPlayerDetector.detectorName());
+
+        PluginManager pluginManager = getServer().getPluginManager();
+        boolean geyserPresent = pluginManager.getPlugin("Geyser-Spigot") != null
+                || pluginManager.getPlugin("Geyser") != null;
+        boolean floodgatePresent = pluginManager.getPlugin("floodgate") != null;
+        if ((geyserPresent || floodgatePresent) && "none".equals(bedrockPlayerDetector.detectorName())) {
+            getLogger().warning(
+                    "Detected Geyser/Floodgate plugin presence, but no compatible Bedrock API was found. "
+                            + "Bedrock-specific safeguards may not activate."
+            );
+        }
     }
 
     private void warnIfTrueCostUiFallbackIsActive() {

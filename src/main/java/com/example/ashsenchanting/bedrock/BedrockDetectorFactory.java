@@ -15,6 +15,11 @@ public final class BedrockDetectorFactory {
             return geyserDetector;
         }
 
+        BedrockPlayerDetector legacyGeyserDetector = LegacyGeyserConnectorBedrockDetector.createIfAvailable();
+        if (legacyGeyserDetector != null) {
+            return legacyGeyserDetector;
+        }
+
         return new NoopBedrockDetector("none");
     }
 }

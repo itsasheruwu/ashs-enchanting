@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.AnvilInventory;
@@ -66,11 +67,15 @@ public final class AnvilClickListener implements Listener {
         }
 
         event.setCancelled(true);
+        boolean bedrockClient = plugin.isBedrockPlayer(player);
 
         if (!isSupportedResultTakeAction(event.getAction())) {
-            logUnsupportedResultTakeAction(player, event);
-            forceSync(player);
-            return;
+            if (!bedrockClient || !isSupportedBedrockFallbackClick(event.getClick())) {
+                logUnsupportedResultTakeAction(player, event);
+                forceSync(player);
+                return;
+            }
+            logBedrockFallbackTakeAction(player, event);
         }
 
         if (!plugin.beginProcessing(player)) {
@@ -292,6 +297,26 @@ public final class AnvilClickListener implements Listener {
             case PICKUP_ALL, PICKUP_HALF, PICKUP_ONE, PICKUP_SOME, MOVE_TO_OTHER_INVENTORY -> true;
             default -> false;
         };
+    }
+
+    private boolean isSupportedBedrockFallbackClick(ClickType clickType) {
+        return switch (clickType) {
+            case LEFT, RIGHT, SHIFT_LEFT, SHIFT_RIGHT, UNKNOWN -> true;
+            default -> false;
+        };
+    }
+
+    private void logBedrockFallbackTakeAction(Player player, InventoryClickEvent event) {
+        PluginSettings settings = plugin.getPluginSettings();
+        if (settings == null || !settings.useLogger()) {
+            return;
+        }
+
+        plugin.logInfo("Bedrock fallback anvil result handling: player=" + player.getName()
+                + " (" + player.getUniqueId() + ")"
+                + ", click=" + event.getClick()
+                + ", action=" + event.getAction()
+                + ", rawSlot=" + event.getRawSlot());
     }
 
     private void logUnsupportedResultTakeAction(Player player, InventoryClickEvent event) {
