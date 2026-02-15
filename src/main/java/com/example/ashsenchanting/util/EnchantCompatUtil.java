@@ -184,7 +184,7 @@ public final class EnchantCompatUtil {
             return 0;
         }
 
-        boolean rightIsBook = right.getType() == Material.ENCHANTED_BOOK;
+        boolean rightIsBook = isBookLike(right.getType());
         int cost = getRepairCost(left) + getRepairCost(right);
         int operationCost = 0;
 
@@ -469,7 +469,11 @@ public final class EnchantCompatUtil {
     }
 
     private static boolean isValidMergeInput(ItemStack left, ItemStack right) {
-        return right.getType() == Material.ENCHANTED_BOOK || right.getType() == left.getType();
+        return isBookLike(right.getType()) || right.getType() == left.getType();
+    }
+
+    private static boolean isBookLike(Material material) {
+        return material == Material.ENCHANTED_BOOK || material == Material.BOOK;
     }
 
     private static int getEnchantLevel(ItemStack item, Enchantment enchantment) {
