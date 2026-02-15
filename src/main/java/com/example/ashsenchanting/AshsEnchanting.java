@@ -12,15 +12,8 @@ import com.example.ashsenchanting.packet.ClientAbilitySpoofer;
 import com.example.ashsenchanting.packet.NoopAbilitySpoofer;
 import com.example.ashsenchanting.packet.ProtocolLibAbilitySpoofer;
 import com.example.ashsenchanting.update.AutoUpdateService;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.AnvilInventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.view.AnvilView;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -34,8 +27,6 @@ public final class AshsEnchanting extends JavaPlugin {
     private final Map<UUID, AnvilSessionState> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> processingPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> spoofedPlayers = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> bedrockAutoApplyHintedPlayers = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> bedrockAutoApplyConfirmedPlayers = ConcurrentHashMap.newKeySet();
     private ClientAbilitySpoofer abilitySpoofer = new NoopAbilitySpoofer();
     private BedrockPlayerDetector bedrockPlayerDetector = new NoopBedrockDetector("none");
     private AutoUpdateService autoUpdateService;
@@ -64,8 +55,6 @@ public final class AshsEnchanting extends JavaPlugin {
         sessions.clear();
         processingPlayers.clear();
         spoofedPlayers.clear();
-        bedrockAutoApplyHintedPlayers.clear();
-        bedrockAutoApplyConfirmedPlayers.clear();
     }
 
     public void reloadPluginSettings() {
@@ -110,8 +99,6 @@ public final class AshsEnchanting extends JavaPlugin {
 
     public void clearSession(Player player) {
         sessions.remove(player.getUniqueId());
-        bedrockAutoApplyHintedPlayers.remove(player.getUniqueId());
-        bedrockAutoApplyConfirmedPlayers.remove(player.getUniqueId());
     }
 
     public boolean beginProcessing(Player player) {
@@ -128,18 +115,6 @@ public final class AshsEnchanting extends JavaPlugin {
 
     public void clearProcessing(Player player) {
         processingPlayers.remove(player.getUniqueId());
-    }
-
-    public boolean markBedrockAutoApplyHinted(Player player) {
-        return bedrockAutoApplyHintedPlayers.add(player.getUniqueId());
-    }
-
-    public boolean confirmBedrockAutoApply(Player player) {
-        return bedrockAutoApplyConfirmedPlayers.add(player.getUniqueId());
-    }
-
-    public boolean consumeBedrockAutoApplyConfirmation(Player player) {
-        return bedrockAutoApplyConfirmedPlayers.remove(player.getUniqueId());
     }
 
     public boolean isAbilitySpoofActive(Player player) {
@@ -188,53 +163,6 @@ public final class AshsEnchanting extends JavaPlugin {
         if (settings != null && settings.useLogger()) {
             getLogger().info(message);
         }
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!"aeconfirm".equalsIgnoreCase(command.getName())) {
-            return false;
-        }
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + "This command can only be used in-game.");
-            return true;
-        }
-
-        if (!(player.getOpenInventory() instanceof AnvilView)) {
-            player.sendMessage(ChatColor.RED + "[Ash's Enchanting] Open an anvil first.");
-            return true;
-        }
-
-        AnvilSessionState state = getSession(player);
-        if (state == null || !state.customCompatApplied()) {
-            player.sendMessage(ChatColor.RED + "[Ash's Enchanting] No pending compat merge to confirm.");
-            return true;
-        }
-
-        confirmBedrockAutoApply(player);
-        player.sendMessage(ChatColor.GREEN + "[Ash's Enchanting] Merge confirmed. Re-tap an anvil input to apply.");
-        triggerAnvilRecompute(player);
-        return true;
-    }
-
-    private void triggerAnvilRecompute(Player player) {
-        if (!(player.getOpenInventory() instanceof AnvilView view)) {
-            return;
-        }
-
-        AnvilInventory anvil = view.getTopInventory();
-        ItemStack right = anvil.getItem(1);
-        Bukkit.getScheduler().runTask(this, () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            if (!(player.getOpenInventory() instanceof AnvilView currentView) || currentView.getTopInventory() != anvil) {
-                return;
-            }
-            anvil.setItem(1, right == null ? null : right.clone());
-            player.updateInventory();
-        });
     }
 
     private void initializeAbilitySpoofer() {

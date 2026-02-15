@@ -13,8 +13,6 @@ public record PluginSettings(
         boolean autoUpdateAllowPrerelease,
         String autoUpdateRepository,
         int autoUpdateTimeoutSeconds,
-        boolean bedrockCompatAutoApplyRequiresCommandConfirm,
-        boolean bedrockCompatAutoApplyRequiresSneak,
         boolean showTrueCostAbove40InAnvilUi,
         TrueCostChatMessageMode showTrueCostChatMessage
 ) {
@@ -30,8 +28,6 @@ public record PluginSettings(
                 config.getBoolean("autoUpdateAllowPrerelease", false),
                 config.getString("autoUpdateRepository", "itsasheruwu/ashs-enchanting"),
                 Math.max(5, config.getInt("autoUpdateTimeoutSeconds", 15)),
-                config.getBoolean("bedrockCompatAutoApplyRequiresCommandConfirm", true),
-                config.getBoolean("bedrockCompatAutoApplyRequiresSneak", false),
                 config.getBoolean("showTrueCostAbove40InAnvilUi", true),
                 TrueCostChatMessageMode.fromConfig(config.getString("showTrueCostChatMessage", "fallback-only"))
         );

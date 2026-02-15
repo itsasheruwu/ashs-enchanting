@@ -19,12 +19,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.2.0.jar`
+- `target/ashs-enchanting-1.2.1.jar`
 
 ## Install
 
 1. Stop the server.
-2. Copy `target/ashs-enchanting-1.2.0.jar` to the server `plugins/` folder.
+2. Copy `target/ashs-enchanting-1.2.1.jar` to the server `plugins/` folder.
 3. Start the server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml` as needed.
 5. Restart server.
@@ -42,8 +42,6 @@ autoUpdateEnabled: true
 autoUpdateAllowPrerelease: false
 autoUpdateRepository: "itsasheruwu/ashs-enchanting"
 autoUpdateTimeoutSeconds: 15
-bedrockCompatAutoApplyRequiresCommandConfirm: true
-bedrockCompatAutoApplyRequiresSneak: false
 showTrueCostAbove40InAnvilUi: true
 showTrueCostChatMessage: fallback-only
 ```
@@ -87,14 +85,6 @@ showTrueCostChatMessage: fallback-only
   - HTTP timeout for auto-update check/download.
   - Minimum effective value is `5`.
 
-- `bedrockCompatAutoApplyRequiresCommandConfirm`
-  - `true` (default): Bedrock compat auto-apply requires running `/aeconfirm` while anvil is open.
-  - `false`: no command confirmation required.
-
-- `bedrockCompatAutoApplyRequiresSneak`
-  - `true`: additionally require sneaking/crouching before Bedrock compat auto-apply can commit.
-  - `false` (default): sneaking is not required.
-
 - `showTrueCostAbove40InAnvilUi`
   - `true`: if ProtocolLib is installed, client ability packets are spoofed while relevant anvil states are open so the native UI can display numeric `40+` costs.
   - If ProtocolLib is missing, plugin safely falls back to `39` display clamp behavior.
@@ -118,8 +108,7 @@ showTrueCostChatMessage: fallback-only
 - All logic is server-side only; no client mods are required.
 - Bedrock players are detected through Floodgate/Geyser when available.
 - For Bedrock stability, true `40+` UI ability spoof mode is intentionally disabled (falls back to `39` display), while true server-side cost charging and custom anvil features remain active.
-- Bedrock compat auto-apply can be set to require sneak confirmation to prevent accidental commits while previewing.
-- Bedrock compat command confirmation is available via `/aeconfirm` for explicit merge intent.
+- Bedrock compat auto-apply commits automatically when compat result is prepared on Bedrock.
 
 ## Anvil Break Behavior
 
