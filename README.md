@@ -19,12 +19,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.1.9.jar`
+- `target/ashs-enchanting-1.1.10.jar`
 
 ## Install
 
 1. Stop the server.
-2. Copy `target/ashs-enchanting-1.1.9.jar` to the server `plugins/` folder.
+2. Copy `target/ashs-enchanting-1.1.10.jar` to the server `plugins/` folder.
 3. Start the server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml` as needed.
 5. Restart server.
@@ -38,6 +38,10 @@ alsoAllowOnCrossbows: false
 allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true
+autoUpdateEnabled: true
+autoUpdateAllowPrerelease: false
+autoUpdateRepository: "itsasheruwu/ashs-enchanting"
+autoUpdateTimeoutSeconds: 15
 bedrockCompatAutoApplyRequiresCommandConfirm: true
 bedrockCompatAutoApplyRequiresSneak: false
 showTrueCostAbove40InAnvilUi: true
@@ -66,6 +70,22 @@ showTrueCostChatMessage: fallback-only
 
 - `useLogger`
   - Enables plugin info logging.
+
+- `autoUpdateEnabled`
+  - `true` (default): checks GitHub releases on startup and downloads newer jar to `plugins/update/`.
+  - Update is applied on next full server restart.
+
+- `autoUpdateAllowPrerelease`
+  - `false` (default): ignore prerelease versions.
+  - `true`: allow prerelease auto-updates.
+
+- `autoUpdateRepository`
+  - GitHub repository in `owner/name` format used for auto-update checks.
+  - Default: `itsasheruwu/ashs-enchanting`.
+
+- `autoUpdateTimeoutSeconds`
+  - HTTP timeout for auto-update check/download.
+  - Minimum effective value is `5`.
 
 - `bedrockCompatAutoApplyRequiresCommandConfirm`
   - `true` (default): Bedrock compat auto-apply requires running `/aeconfirm` while anvil is open.

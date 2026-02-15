@@ -11,6 +11,7 @@ import com.example.ashsenchanting.model.AnvilSessionState;
 import com.example.ashsenchanting.packet.ClientAbilitySpoofer;
 import com.example.ashsenchanting.packet.NoopAbilitySpoofer;
 import com.example.ashsenchanting.packet.ProtocolLibAbilitySpoofer;
+import com.example.ashsenchanting.update.AutoUpdateService;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -37,6 +38,7 @@ public final class AshsEnchanting extends JavaPlugin {
     private final Set<UUID> bedrockAutoApplyConfirmedPlayers = ConcurrentHashMap.newKeySet();
     private ClientAbilitySpoofer abilitySpoofer = new NoopAbilitySpoofer();
     private BedrockPlayerDetector bedrockPlayerDetector = new NoopBedrockDetector("none");
+    private AutoUpdateService autoUpdateService;
     private boolean protocolLibFallbackWarningLogged;
     private PluginSettings settings;
 
@@ -47,6 +49,7 @@ public final class AshsEnchanting extends JavaPlugin {
         initializeBedrockDetector();
         reloadPluginSettings();
         warnIfTrueCostUiFallbackIsActive();
+        initializeAutoUpdater();
 
         getServer().getPluginManager().registerEvents(new AnvilPrepareListener(this), this);
         getServer().getPluginManager().registerEvents(new AnvilClickListener(this), this);
@@ -72,6 +75,10 @@ public final class AshsEnchanting extends JavaPlugin {
             clearAllAbilitySpoofs();
         } else {
             warnIfTrueCostUiFallbackIsActive();
+        }
+
+        if (autoUpdateService != null && settings != null) {
+            autoUpdateService.checkAndDownloadUpdateAsync(settings);
         }
     }
 
@@ -258,6 +265,13 @@ public final class AshsEnchanting extends JavaPlugin {
                     "Detected Geyser/Floodgate plugin presence, but no compatible Bedrock API was found. "
                             + "Bedrock-specific safeguards may not activate."
             );
+        }
+    }
+
+    private void initializeAutoUpdater() {
+        autoUpdateService = new AutoUpdateService(this);
+        if (settings != null) {
+            autoUpdateService.checkAndDownloadUpdateAsync(settings);
         }
     }
 

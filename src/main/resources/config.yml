@@ -5,6 +5,12 @@ allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true
 
+# Auto-updater (downloads newer jar to plugins/update/ and applies on next restart)
+autoUpdateEnabled: true
+autoUpdateAllowPrerelease: false
+autoUpdateRepository: "itsasheruwu/ashs-enchanting"
+autoUpdateTimeoutSeconds: 15
+
 # Bedrock fallback confirm behavior:
 # - true: player must run /aeconfirm before Bedrock compat auto-apply can commit.
 # - false: no command confirmation required.
