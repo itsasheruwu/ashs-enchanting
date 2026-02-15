@@ -1,5 +1,8 @@
 package com.example.ashsenchanting;
 
+import com.example.ashsenchanting.bedrock.BedrockDetectorFactory;
+import com.example.ashsenchanting.bedrock.BedrockPlayerDetector;
+import com.example.ashsenchanting.bedrock.NoopBedrockDetector;
 import com.example.ashsenchanting.config.PluginSettings;
 import com.example.ashsenchanting.listener.AnvilClickListener;
 import com.example.ashsenchanting.listener.AnvilPrepareListener;
@@ -23,6 +26,7 @@ public final class AshsEnchanting extends JavaPlugin {
     private final Set<UUID> processingPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> spoofedPlayers = ConcurrentHashMap.newKeySet();
     private ClientAbilitySpoofer abilitySpoofer = new NoopAbilitySpoofer();
+    private BedrockPlayerDetector bedrockPlayerDetector = new NoopBedrockDetector("none");
     private boolean protocolLibFallbackWarningLogged;
     private PluginSettings settings;
 
@@ -30,6 +34,7 @@ public final class AshsEnchanting extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         initializeAbilitySpoofer();
+        initializeBedrockDetector();
         reloadPluginSettings();
         warnIfTrueCostUiFallbackIsActive();
 
@@ -64,6 +69,10 @@ public final class AshsEnchanting extends JavaPlugin {
 
     public ClientAbilitySpoofer getAbilitySpoofer() {
         return abilitySpoofer;
+    }
+
+    public boolean isBedrockPlayer(Player player) {
+        return bedrockPlayerDetector.isBedrockPlayer(player);
     }
 
     public boolean canDisplayTrueCostAbove40InUi() {
@@ -161,6 +170,11 @@ public final class AshsEnchanting extends JavaPlugin {
             abilitySpoofer = new NoopAbilitySpoofer();
             getLogger().warning("ProtocolLib is present but ability packet init failed; falling back to 39-cost UI mode.");
         }
+    }
+
+    private void initializeBedrockDetector() {
+        bedrockPlayerDetector = BedrockDetectorFactory.create();
+        getLogger().info("Bedrock detector initialized: " + bedrockPlayerDetector.detectorName());
     }
 
     private void warnIfTrueCostUiFallbackIsActive() {

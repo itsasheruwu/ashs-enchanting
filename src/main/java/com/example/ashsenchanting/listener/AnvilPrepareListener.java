@@ -32,6 +32,7 @@ public final class AnvilPrepareListener implements Listener {
         PluginSettings settings = plugin.getPluginSettings();
         AnvilInventory inventory = event.getInventory();
         AnvilView view = event.getView();
+        boolean isBedrock = plugin.isBedrockPlayer(player);
 
         ItemStack left = inventory.getItem(0);
         ItemStack right = inventory.getItem(1);
@@ -72,7 +73,9 @@ public final class AnvilPrepareListener implements Listener {
         boolean tooExpensiveBypassNeeded = settings.disableTooExpensive()
                 && finalResult != null
                 && effectiveRepairCost >= VANILLA_TOO_EXPENSIVE_THRESHOLD;
-        boolean trueCostDisplayModeActive = tooExpensiveBypassNeeded && plugin.canDisplayTrueCostAbove40InUi();
+        boolean trueCostDisplayModeActive = tooExpensiveBypassNeeded
+                && plugin.canDisplayTrueCostAbove40InUi()
+                && !isBedrock;
         boolean abilitySpoofNeeded = trueCostDisplayModeActive && finalResult != null;
 
         if (settings.disableTooExpensive()) {

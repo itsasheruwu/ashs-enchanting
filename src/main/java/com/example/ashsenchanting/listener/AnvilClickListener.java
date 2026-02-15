@@ -20,7 +20,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.AnvilInventory;
@@ -68,7 +67,8 @@ public final class AnvilClickListener implements Listener {
 
         event.setCancelled(true);
 
-        if (!isSupportedClick(event)) {
+        if (!isSupportedResultTakeAction(event.getAction())) {
+            logUnsupportedResultTakeAction(player, event);
             forceSync(player);
             return;
         }
@@ -287,11 +287,26 @@ public final class AnvilClickListener implements Listener {
         return settings.chargeCreative() || player.getGameMode() != GameMode.CREATIVE;
     }
 
-    private boolean isSupportedClick(InventoryClickEvent event) {
-        return switch (event.getClick()) {
-            case LEFT, RIGHT, SHIFT_LEFT, SHIFT_RIGHT -> true;
+    private boolean isSupportedResultTakeAction(InventoryAction action) {
+        return switch (action) {
+            case PICKUP_ALL, PICKUP_HALF, PICKUP_ONE, PICKUP_SOME, MOVE_TO_OTHER_INVENTORY -> true;
             default -> false;
         };
+    }
+
+    private void logUnsupportedResultTakeAction(Player player, InventoryClickEvent event) {
+        PluginSettings settings = plugin.getPluginSettings();
+        if (settings == null || !settings.useLogger()) {
+            return;
+        }
+
+        String clientType = plugin.isBedrockPlayer(player) ? "bedrock" : "java";
+        plugin.logInfo("Blocked unsupported anvil result action: player=" + player.getName()
+                + " (" + player.getUniqueId() + ")"
+                + ", client=" + clientType
+                + ", click=" + event.getClick()
+                + ", action=" + event.getAction()
+                + ", rawSlot=" + event.getRawSlot());
     }
 
     private void forceSync(Player player) {

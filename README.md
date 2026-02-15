@@ -19,12 +19,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.0.8.jar`
+- `target/ashs-enchanting-1.1.0.jar`
 
 ## Install
 
 1. Stop the server.
-2. Copy `target/ashs-enchanting-1.0.8.jar` to the server `plugins/` folder.
+2. Copy `target/ashs-enchanting-1.1.0.jar` to the server `plugins/` folder.
 3. Start the server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml` as needed.
 5. Restart server.
@@ -86,6 +86,8 @@ showTrueCostChatMessage: fallback-only
 - Manual takeovers force immediate `player.updateInventory()`.
 - A 1-tick delayed second `updateInventory()` is scheduled to reduce Java/Bedrock UI divergence.
 - All logic is server-side only; no client mods are required.
+- Bedrock players are detected through Floodgate/Geyser when available.
+- For Bedrock stability, true `40+` UI ability spoof mode is intentionally disabled (falls back to `39` display), while true server-side cost charging and custom anvil features remain active.
 
 ## Anvil Break Behavior
 
