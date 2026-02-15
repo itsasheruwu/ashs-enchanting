@@ -196,8 +196,13 @@ public final class AnvilPrepareListener implements Listener {
         if (settings == null) {
             return;
         }
+        if (settings.bedrockCompatAutoApplyRequiresCommandConfirm()
+                && !plugin.consumeBedrockAutoApplyConfirmation(player)) {
+            maybeSendBedrockCommandConfirmHint(player);
+            return;
+        }
         if (settings.bedrockCompatAutoApplyRequiresSneak() && !player.isSneaking()) {
-            maybeSendBedrockSneakConfirmHint(player);
+            maybeSendBedrockOptionalSneakHint(player);
             return;
         }
 
@@ -225,12 +230,20 @@ public final class AnvilPrepareListener implements Listener {
         }
     }
 
-    private void maybeSendBedrockSneakConfirmHint(Player player) {
+    private void maybeSendBedrockCommandConfirmHint(Player player) {
         if (!plugin.markBedrockAutoApplyHinted(player)) {
             return;
         }
         player.sendMessage(ChatColor.YELLOW
-                + "[Ash's Enchanting] Sneak (crouch) while using the anvil to confirm this Bedrock merge.");
+                + "[Ash's Enchanting] Type /aeconfirm to confirm this Bedrock merge.");
+    }
+
+    private void maybeSendBedrockOptionalSneakHint(Player player) {
+        if (!plugin.markBedrockAutoApplyHinted(player)) {
+            return;
+        }
+        player.sendMessage(ChatColor.YELLOW
+                + "[Ash's Enchanting] Sneak (crouch) is currently required by config before merge apply.");
     }
 
     private void applyBedrockCompatMerge(

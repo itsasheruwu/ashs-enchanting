@@ -6,9 +6,14 @@ chargeCreative: false
 useLogger: true
 
 # Bedrock fallback confirm behavior:
-# - true: compat auto-apply on Bedrock only happens while player is sneaking (recommended).
-# - false: compat auto-apply happens immediately when compat result is prepared.
-bedrockCompatAutoApplyRequiresSneak: true
+# - true: player must run /aeconfirm before Bedrock compat auto-apply can commit.
+# - false: no command confirmation required.
+bedrockCompatAutoApplyRequiresCommandConfirm: true
+
+# Optional extra guard:
+# - true: Bedrock compat auto-apply also requires sneaking/crouching.
+# - false: sneaking is not required.
+bedrockCompatAutoApplyRequiresSneak: false
 
 # When true and ProtocolLib is installed, the anvil UI can display real 40+ costs.
 # If ProtocolLib is missing, plugin falls back to showing 39 and sends private true-cost chat.
