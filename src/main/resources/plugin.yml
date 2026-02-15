@@ -1,7 +1,12 @@
 name: AshsEnchanting
 main: com.example.ashsenchanting.AshsEnchanting
-version: 1.2.1
+version: 1.2.2
 api-version: '1.21'
 description: Removes anvil Too Expensive restriction and allows Infinity+Mending coexistence.
 author: Ash
 softdepend: [ProtocolLib, floodgate, Geyser-Spigot, Geyser]
+commands:
+  autoconfirmae:
+    description: Temporarily enables Bedrock anvil auto-apply for compat merges.
+    usage: /autoconfirmae
+    aliases: [aeautoconfirm]

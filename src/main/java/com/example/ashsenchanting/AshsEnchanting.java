@@ -12,8 +12,15 @@ import com.example.ashsenchanting.packet.ClientAbilitySpoofer;
 import com.example.ashsenchanting.packet.NoopAbilitySpoofer;
 import com.example.ashsenchanting.packet.ProtocolLibAbilitySpoofer;
 import com.example.ashsenchanting.update.AutoUpdateService;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.AnvilInventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.view.AnvilView;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -25,8 +32,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class AshsEnchanting extends JavaPlugin {
     private final Map<UUID, AnvilSessionState> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> bedrockAutoApplyWindows = new ConcurrentHashMap<>();
     private final Set<UUID> processingPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> spoofedPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> bedrockAutoApplyHintedPlayers = ConcurrentHashMap.newKeySet();
     private ClientAbilitySpoofer abilitySpoofer = new NoopAbilitySpoofer();
     private BedrockPlayerDetector bedrockPlayerDetector = new NoopBedrockDetector("none");
     private AutoUpdateService autoUpdateService;
@@ -53,8 +62,10 @@ public final class AshsEnchanting extends JavaPlugin {
     public void onDisable() {
         clearAllAbilitySpoofs();
         sessions.clear();
+        bedrockAutoApplyWindows.clear();
         processingPlayers.clear();
         spoofedPlayers.clear();
+        bedrockAutoApplyHintedPlayers.clear();
     }
 
     public void reloadPluginSettings() {
@@ -99,6 +110,7 @@ public final class AshsEnchanting extends JavaPlugin {
 
     public void clearSession(Player player) {
         sessions.remove(player.getUniqueId());
+        bedrockAutoApplyHintedPlayers.remove(player.getUniqueId());
     }
 
     public boolean beginProcessing(Player player) {
@@ -115,6 +127,32 @@ public final class AshsEnchanting extends JavaPlugin {
 
     public void clearProcessing(Player player) {
         processingPlayers.remove(player.getUniqueId());
+    }
+
+    public boolean hasActiveBedrockAutoApplyWindow(Player player) {
+        Long expiresAt = bedrockAutoApplyWindows.get(player.getUniqueId());
+        if (expiresAt == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        if (expiresAt <= now) {
+            bedrockAutoApplyWindows.remove(player.getUniqueId());
+            return false;
+        }
+        return true;
+    }
+
+    public long openBedrockAutoApplyWindow(Player player) {
+        PluginSettings current = settings;
+        int seconds = current == null ? 20 : current.bedrockAutoApplyWindowSeconds();
+        long expiresAt = System.currentTimeMillis() + (seconds * 1000L);
+        bedrockAutoApplyWindows.put(player.getUniqueId(), expiresAt);
+        bedrockAutoApplyHintedPlayers.remove(player.getUniqueId());
+        return seconds;
+    }
+
+    public boolean markBedrockAutoApplyHinted(Player player) {
+        return bedrockAutoApplyHintedPlayers.add(player.getUniqueId());
     }
 
     public boolean isAbilitySpoofActive(Player player) {
@@ -163,6 +201,50 @@ public final class AshsEnchanting extends JavaPlugin {
         if (settings != null && settings.useLogger()) {
             getLogger().info(message);
         }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!"autoconfirmae".equalsIgnoreCase(command.getName())) {
+            return false;
+        }
+
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(ChatColor.RED + "This command can only be used in-game.");
+            return true;
+        }
+
+        if (!isBedrockPlayer(player)) {
+            player.sendMessage(ChatColor.YELLOW + "[Ash's Enchanting] This command is only needed on Bedrock/Geyser.");
+            return true;
+        }
+
+        long seconds = openBedrockAutoApplyWindow(player);
+        player.sendMessage(ChatColor.GOLD
+                + "[Ash's Enchanting] Allowing Geyser support for Ash's Enchanting for "
+                + seconds
+                + " seconds. Beware: items put in an anvil will instantly combine until the timer ends.");
+        triggerAnvilRecompute(player);
+        return true;
+    }
+
+    private void triggerAnvilRecompute(Player player) {
+        if (!(player.getOpenInventory() instanceof AnvilView view)) {
+            return;
+        }
+
+        AnvilInventory anvil = view.getTopInventory();
+        ItemStack right = anvil.getItem(1);
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!(player.getOpenInventory() instanceof AnvilView currentView) || currentView.getTopInventory() != anvil) {
+                return;
+            }
+            anvil.setItem(1, right == null ? null : right.clone());
+            player.updateInventory();
+        });
     }
 
     private void initializeAbilitySpoofer() {

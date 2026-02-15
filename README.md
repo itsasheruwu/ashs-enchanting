@@ -19,12 +19,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.2.1.jar`
+- `target/ashs-enchanting-1.2.2.jar`
 
 ## Install
 
 1. Stop the server.
-2. Copy `target/ashs-enchanting-1.2.1.jar` to the server `plugins/` folder.
+2. Copy `target/ashs-enchanting-1.2.2.jar` to the server `plugins/` folder.
 3. Start the server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml` as needed.
 5. Restart server.
@@ -38,6 +38,7 @@ alsoAllowOnCrossbows: false
 allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true
+bedrockAutoApplyWindowSeconds: 20
 autoUpdateEnabled: true
 autoUpdateAllowPrerelease: false
 autoUpdateRepository: "itsasheruwu/ashs-enchanting"
@@ -68,6 +69,10 @@ showTrueCostChatMessage: fallback-only
 
 - `useLogger`
   - Enables plugin info logging.
+
+- `bedrockAutoApplyWindowSeconds`
+  - Duration of Bedrock auto-apply window triggered by `/autoconfirmae`.
+  - Default: `20`.
 
 - `autoUpdateEnabled`
   - `true` (default): checks GitHub releases on startup and downloads newer jar to `plugins/update/`.
@@ -108,7 +113,7 @@ showTrueCostChatMessage: fallback-only
 - All logic is server-side only; no client mods are required.
 - Bedrock players are detected through Floodgate/Geyser when available.
 - For Bedrock stability, true `40+` UI ability spoof mode is intentionally disabled (falls back to `39` display), while true server-side cost charging and custom anvil features remain active.
-- Bedrock compat auto-apply commits automatically when compat result is prepared on Bedrock.
+- Bedrock compat auto-apply is temporarily enabled with `/autoconfirmae` and expires after `bedrockAutoApplyWindowSeconds`.
 
 ## Anvil Break Behavior
 

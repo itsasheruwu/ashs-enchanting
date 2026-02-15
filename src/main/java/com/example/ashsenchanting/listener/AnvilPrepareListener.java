@@ -5,6 +5,7 @@ import com.example.ashsenchanting.config.PluginSettings;
 import com.example.ashsenchanting.model.AnvilSessionState;
 import com.example.ashsenchanting.util.EnchantCompatUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -195,6 +196,10 @@ public final class AnvilPrepareListener implements Listener {
         if (settings == null) {
             return;
         }
+        if (!plugin.hasActiveBedrockAutoApplyWindow(player)) {
+            maybeSendBedrockAutoApplyWindowHint(player);
+            return;
+        }
 
         AnvilInventory anvil = view.getTopInventory();
         if (!inputsStillMatchState(anvil, state)) {
@@ -218,6 +223,14 @@ public final class AnvilPrepareListener implements Listener {
         } finally {
             plugin.endProcessing(player);
         }
+    }
+
+    private void maybeSendBedrockAutoApplyWindowHint(Player player) {
+        if (!plugin.markBedrockAutoApplyHinted(player)) {
+            return;
+        }
+        player.sendMessage(ChatColor.YELLOW
+                + "[Ash's Enchanting] Run /autoconfirmae to temporarily allow Bedrock anvil auto-apply.");
     }
 
     private void applyBedrockCompatMerge(

@@ -5,6 +5,9 @@ allowAllProtectionsOnArmor: false
 chargeCreative: false
 useLogger: true
 
+# Bedrock/Geyser compat auto-apply window length (triggered by /autoconfirmae)
+bedrockAutoApplyWindowSeconds: 20
+
 # Auto-updater (downloads newer jar to plugins/update/ and applies on next restart)
 autoUpdateEnabled: true
 autoUpdateAllowPrerelease: false
