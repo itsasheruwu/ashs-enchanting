@@ -19,12 +19,12 @@ mvn clean package
 ```
 
 Output jar:
-- `target/ashs-enchanting-1.1.1.jar`
+- `target/ashs-enchanting-1.1.2.jar`
 
 ## Install
 
 1. Stop the server.
-2. Copy `target/ashs-enchanting-1.1.1.jar` to the server `plugins/` folder.
+2. Copy `target/ashs-enchanting-1.1.2.jar` to the server `plugins/` folder.
 3. Start the server once to generate config.
 4. Edit `plugins/AshsEnchanting/config.yml` as needed.
 5. Restart server.

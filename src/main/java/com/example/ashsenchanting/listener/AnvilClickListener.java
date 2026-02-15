@@ -67,15 +67,15 @@ public final class AnvilClickListener implements Listener {
         }
 
         event.setCancelled(true);
-        boolean bedrockClient = plugin.isBedrockPlayer(player);
-
-        if (!isSupportedResultTakeAction(event.getAction())) {
-            if (!bedrockClient || !isSupportedBedrockFallbackClick(event.getClick())) {
-                logUnsupportedResultTakeAction(player, event);
-                forceSync(player);
-                return;
-            }
-            logBedrockFallbackTakeAction(player, event);
+        boolean actionSupported = isSupportedResultTakeAction(event.getAction());
+        boolean clickFallbackSupported = isSupportedFallbackClick(event.getClick());
+        if (!actionSupported && !clickFallbackSupported) {
+            logUnsupportedResultTakeAction(player, event);
+            forceSync(player);
+            return;
+        }
+        if (!actionSupported && clickFallbackSupported) {
+            logFallbackTakeAction(player, event);
         }
 
         if (!plugin.beginProcessing(player)) {
@@ -299,21 +299,23 @@ public final class AnvilClickListener implements Listener {
         };
     }
 
-    private boolean isSupportedBedrockFallbackClick(ClickType clickType) {
+    private boolean isSupportedFallbackClick(ClickType clickType) {
         return switch (clickType) {
             case LEFT, RIGHT, SHIFT_LEFT, SHIFT_RIGHT, UNKNOWN -> true;
             default -> false;
         };
     }
 
-    private void logBedrockFallbackTakeAction(Player player, InventoryClickEvent event) {
+    private void logFallbackTakeAction(Player player, InventoryClickEvent event) {
         PluginSettings settings = plugin.getPluginSettings();
         if (settings == null || !settings.useLogger()) {
             return;
         }
 
-        plugin.logInfo("Bedrock fallback anvil result handling: player=" + player.getName()
+        String clientType = plugin.isBedrockPlayer(player) ? "bedrock" : "java";
+        plugin.logInfo("Fallback anvil result handling: player=" + player.getName()
                 + " (" + player.getUniqueId() + ")"
+                + ", client=" + clientType
                 + ", click=" + event.getClick()
                 + ", action=" + event.getAction()
                 + ", rawSlot=" + event.getRawSlot());

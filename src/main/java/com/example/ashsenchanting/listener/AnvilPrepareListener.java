@@ -4,6 +4,7 @@ import com.example.ashsenchanting.AshsEnchanting;
 import com.example.ashsenchanting.config.PluginSettings;
 import com.example.ashsenchanting.model.AnvilSessionState;
 import com.example.ashsenchanting.util.EnchantCompatUtil;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -60,6 +61,10 @@ public final class AnvilPrepareListener implements Listener {
 
         ItemStack finalResult = patch.result() == null ? null : patch.result().clone();
         event.setResult(finalResult);
+        if (patch.customCompatApplied()) {
+            // Geyser/Bedrock may fail to reflect PrepareAnvilEvent result-only updates for custom compat paths.
+            inventory.setItem(2, finalResult == null ? null : finalResult.clone());
+        }
 
         int effectiveRepairCost = EnchantCompatUtil.resolveCompatRepairCost(
                 settings,
@@ -92,17 +97,8 @@ public final class AnvilPrepareListener implements Listener {
 
         plugin.updateAbilitySpoof(player, abilitySpoofNeeded);
 
-        boolean customCompatNeedsTakeover = EnchantCompatUtil.shouldTakeOverForCompat(
-                new EnchantCompatUtil.AnvilSessionDecision(
-                        patch.customCompatApplied(),
-                        vanillaResult == null,
-                        vanillaRepairCost == 0
-                )
-        );
-        if (isBedrock && patch.customCompatApplied()) {
-            // Bedrock/Geyser clients may not surface custom compat results reliably in UI.
-            customCompatNeedsTakeover = true;
-        }
+        boolean customCompatNeedsTakeover = patch.customCompatApplied()
+                && (finalResult != null && finalResult.getType() != Material.AIR);
 
         int effectiveRightConsume = EnchantCompatUtil.resolveRepairItemConsumption(
                 vanillaRepairItemCountCost,
